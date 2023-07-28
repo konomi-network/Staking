@@ -1,0 +1,62 @@
+{
+  "name": "@konomi/staking",
+  "description": "Staking Contracts for the konomi protocol",
+  "version": "0.0.1",
+  "homepage": "https://www.konomi.network/#/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/konomi-network/Staking"
+  },
+  "files": [
+    "contracts",
+    "build",
+    "scripts"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
+  "license": "MIT",
+  "scripts": {
+    "prepare": "husky install",
+    "precompile": "yarn clean",
+    "pretest": "yarn compile",
+    "ci": "yarn --frozen-lockfile",
+    "clean": "rimraf ./build/",
+    "build": "tsc -p tsconfig.build.json",
+    "compile": "npx hardhat compile",
+    "start": "npx hardhat node",
+    "console": "npx hardhat console --network",
+    "flatten": "npx hardhat flatten",
+    "lint": "yarn prettier --check **/*",
+    "lint:fix": "yarn prettier --write **/*",
+    "test": "npx hardhat coverage --testfiles \"test/*.ts\" --solcoverjs .solcover.js",
+    "deploy:staking": "npx hardhat run scripts/staking-deploy.ts --network ${NETWORK}",
+    "test-specific": "mocha -g"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@openzeppelin/hardhat-upgrades": "^2.0.2",
+    "@types/chai": "^4.3.5",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "^20.4.5",
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "@typescript-eslint/parser": "^6.2.0",
+    "chai": "^4.3.7",
+    "dotenv": "^16.3.1",
+    "eslint": "^8.45.0",
+    "eslint-utils": "^3.0.0",
+    "hardhat": "^2.17.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.3",
+    "solhint": "^3.4.1",
+    "solhint-plugin-prettier": "^0.0.5",
+    "ts-node": "^10.9.1",
+    "typechain": "^8.3.1",
+    "typescript": "^5.1.6",
+    "yarn-upgrade-all": "^0.7.2"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.9.2",
+    "@openzeppelin/contracts-upgradeable": "^4.9.2"
+  }
+}
