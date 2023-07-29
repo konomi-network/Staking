@@ -1,3 +1,10 @@
 {
-    "STAKE-1": "Staking ended"
+    "STAKE-1": "Staking ended",
+    "STAKE-2": "Incorrect weight configuration for combo",
+    "STAKE-3": "No permission to view others combo",
+    "STAKE-4": "Not exist the _comboId",
+    "STAKE-5": "Reached the maximum deposit amount",
+    "STAKE-6": "Must exceed the minimal deposit amount",
+    "STAKE-7": "Reached the maximum deposit amount a user can stake",
+    "STAKE-8": "Reached the maximum number of staking per user"
 }
