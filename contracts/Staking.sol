@@ -92,13 +92,22 @@ contract Staking is Initializable, AccessControlUpgradeable, OwnableUpgradeable,
     }
 
     function initialize(
-        Combo[] memory _combos
+        Combo[] calldata _combos
     ) external initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         __Ownable_init();
         __Pausable_init();
 
-        combos = _combos;
+        for (uint256 i = 0; i < _combos.length; i++) {
+            Combo storage combo = combos[i];
+
+            Combo calldata _combo = _combos[i];
+            for (uint256 j = 0; j < _combo.tokens.length; j++) {
+                combo.tokens[j] = _combo.tokens[j];
+            }
+            combo.creditRating = _combo.creditRating;
+        }
+
         stakingEnded = false;
     }
 

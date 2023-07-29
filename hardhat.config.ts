@@ -34,11 +34,7 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,
-  },
-  typechain: {
-    outDir: 'typechain',
-    target: 'ethers-v5',
-  },
+  }
 };
 
 export default config;
