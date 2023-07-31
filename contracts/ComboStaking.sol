@@ -228,8 +228,10 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
      * @dev support append and remove combo to combs? just support handle combo list
      * @param _combo the stakingToken information of combo
      */
-    function appendCombo(Combo calldata _combo) external onlyOwner {
+    function addCombo(Combo calldata _combo) external onlyOwner {
         _newCombo(_combo);
+
+        emit AddCombo(msg.sender, _combo);
     }
 
     /**
@@ -237,8 +239,12 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
      * @param _comboId the index of combo
      */
     function removeCombo(uint8 _comboId) external onlyOwner {
+        Combo memory oldCombo = combos[_comboId];
+
         combos[_comboId] = combos[combos.length - 1];
         combos.pop();
+
+        emit RemoveCombo(msg.sender, _comboId, oldCombo);
     }
 
     /**

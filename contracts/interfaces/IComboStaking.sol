@@ -50,6 +50,8 @@ interface IComboStaking {
     /// Events
     event Deposited(address who, uint8 comboId, address sourceToken, uint256 amount);
     event Redeemed(address who, uint8 comboId);
+    event AddCombo(address who, Combo newCombo);
+    event RemoveCombo(address who, uint8 comboId, Combo oldCombo);
 
     function listAllCombos() external view returns (Combo[] memory);
     function listUserStakeDetails(address _who) external view returns (UserStake[] memory);
