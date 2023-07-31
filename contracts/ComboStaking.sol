@@ -120,8 +120,12 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
 
     function _combosInit(Combo[] calldata _combos) internal {
         for (uint i = 0; i < _combos.length; i++) {
-            combos.push(_combos[i]);
+            _newCombo(_combos[i]);
         }
+    }
+
+    function _newCombo(Combo calldata _combo) internal _checkComboWeight(_combo.tokens) {
+        combos.push(_combo);
     }
 
     /**
@@ -225,7 +229,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
      * @param _combo the stakingToken information of combo
      */
     function appendCombo(Combo calldata _combo) external onlyOwner {
-        combos.push(_combo);
+        _newCombo(_combo);
     }
 
     /**
