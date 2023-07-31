@@ -1,0 +1,139 @@
+import {
+    expect
+} from 'chai';
+import {
+    Contract,
+    Signer
+} from 'ethers';
+import {
+    ethers
+} from 'hardhat';
+import {
+    deployContractWithDeployer
+} from './utils';
+
+const TEST_AMOUNT = expandTo18Decimals(10000);
+
+function expandTo18Decimals(n: number): BigInt {
+    return BigInt(n) * (10n ** 18n);
+}
+
+const advanceBlocks = async (blockNumber: number) => {
+    while (blockNumber > 0) {
+        blockNumber--;
+        await ethers.provider.send('evm_mine', []);
+    }
+};
+
+describe("ComboStaking", function () {
+    let token: Contract;
+    let tokenEth: Contract;
+    let tokenLink: Contract;
+
+    let swapRouterContract: Contract;
+    let toTestContract: Contract;
+
+    let deployer: Signer;
+    let sender: Signer;
+    let user1: Signer;
+
+    const MAX_DEPOSIT = expandTo18Decimals(10000000);;
+    const MAX_PER_USER_DEPOSIT = expandTo18Decimals(100000);
+    const MIN_DEPOSIT_AMOUNT = 100n;
+
+    beforeEach(async () => {
+        [deployer, sender, user1] = await ethers.getSigners();
+
+        const isSilent = true;
+
+        const mockErc20ContractName = 'MockERC20';
+        token = await deployContractWithDeployer(deployer, mockErc20ContractName, ['USDA', 'USDA'], isSilent);
+        tokenEth = await deployContractWithDeployer(deployer, mockErc20ContractName, ['ETH', 'ETH'], isSilent);
+        tokenLink = await deployContractWithDeployer(deployer, mockErc20ContractName, ['LINK', 'LINK'], isSilent);
+
+        swapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
+
+        const DEFAULT_COMBOS = [{
+            creditRating: 1,
+            tokens: [{
+                    weight: 30,
+                    staking: {
+                        id: 0,
+                        name: 'ETH',
+                        token: await tokenEth.getAddress(),
+                        amount: 0,
+                        stakedTime: 0
+                    }
+                },
+                {
+                    weight: 70,
+                    staking: {
+                        id: 1,
+                        name: 'LINK',
+                        token: await tokenLink.getAddress(),
+                        amount: 0,
+                        stakedTime: 0
+                    }
+                }
+            ]
+        }]
+
+        /*
+            uint256 _maxDeposit,
+            uint256 _maxPerUserDeposit,
+            uint256 _minDepositAmount,
+            ISwapRouter _swapRouter,
+            Combo[] calldata _combos
+        */
+        toTestContract = await deployContractWithDeployer(
+            deployer,
+            'ComboStaking',
+            [],
+            isSilent,
+        );
+
+        await toTestContract.initialize(MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, await swapRouterContract.getAddress(), DEFAULT_COMBOS);
+    });
+
+    describe('Deposited', async () => {
+        it('deposit but not enough', async () => {
+            const senderAddr = await sender.getAddress();
+            const testContractAddr = await toTestContract.getAddress();
+            const tokenAddr = await token.getAddress();
+
+            await expect(await token.connect(deployer).transfer(senderAddr, TEST_AMOUNT)).to.emit(token, 'Transfer');
+            await expect(token.connect(sender).increaseAllowance(testContractAddr, TEST_AMOUNT)).to.emit(
+                token,
+                'Approval',
+            );
+
+            const tx = toTestContract.connect(sender).deposit(0, tokenAddr, MIN_DEPOSIT_AMOUNT - 1n);
+            await expect(tx).to.be.revertedWith('STAKE-6');
+        });
+
+        it('deposit with 1000 and 2000', async () => {
+            const senderAddr = await sender.getAddress();
+            const testContractAddr = await toTestContract.getAddress();
+            const tokenAddr = await token.getAddress();
+
+            await expect(await token.connect(deployer).transfer(senderAddr, TEST_AMOUNT)).to.emit(token, 'Transfer');
+            await expect(token.connect(sender).increaseAllowance(testContractAddr, TEST_AMOUNT)).to.emit(
+                token,
+                'Approval',
+            );
+            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
+            const connect = toTestContract.connect(sender);
+            await expect(connect.deposit(0, tokenAddr, 1000)).to.emit(toTestContract, 'Deposited');
+            await expect(connect.deposit(0, tokenAddr, 2000)).to.emit(toTestContract, 'Deposited');
+
+            const userDetail = await connect.listUserStakeDetails(await sender.getAddress());
+            expect(userDetail.length).to.eq(2);
+
+            expect(userDetail[0].tokens[0].staking.amount).to.eq(300);
+            expect(userDetail[0].tokens[1].staking.amount).to.eq(700);
+
+            expect(userDetail[1].tokens[0].staking.amount).to.eq(600);
+            expect(userDetail[1].tokens[1].staking.amount).to.eq(1400);
+        });
+    });
+});

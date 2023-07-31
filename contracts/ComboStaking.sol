@@ -10,6 +10,9 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
+
 import "./interfaces/IComboStaking.sol";
 
 /**
@@ -25,6 +28,8 @@ import "./interfaces/IComboStaking.sol";
 contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable, OwnableUpgradeable, PausableUpgradeable, UUPSUpgradeable {
     using Math for uint256;
     using SafeERC20 for IERC20;
+
+    ISwapRouter public swapRouter;
 
     // The combos of the staking options.
     Combo[] public combos;
@@ -60,6 +65,9 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     // Whether the staking has ended
     bool public stakingEnded;
 
+    // Uniswap pool fee, 0.3%
+    uint24 public constant ISWAP_POOL_FEE = 3000;
+
     // For upgrading contract versions
     uint16 public constant VERSION = 1;
 
@@ -92,6 +100,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         uint256 _maxDeposit,
         uint256 _maxPerUserDeposit,
         uint256 _minDepositAmount,
+        ISwapRouter _swapRouter,
         Combo[] calldata _combos
     ) external initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -99,6 +108,8 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         __Pausable_init();
 
         _combosInit(_combos);
+
+        swapRouter = _swapRouter;
 
         totalDeposit = 0;
         totalReward = 0;
@@ -113,15 +124,8 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
 
     function _combosInit(Combo[] calldata _combos) internal {
         for (uint i = 0; i < _combos.length; i++) {
-            _setCombo(combos[i], _combos[i]);
+            combos.push(_combos[i]);
         }
-    }
-
-    function _setCombo(Combo storage combo, Combo calldata _combo) internal _checkComboWeight(_combo.tokens) {
-        for (uint i = 0; i < _combo.tokens.length; i++) {
-            combo.tokens[i] = _combo.tokens[i];
-        }
-        combo.creditRating = _combo.creditRating;
     }
 
     /**
@@ -162,7 +166,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         return 1;
     }
 
-    function deposit(uint8 _comboId, address _sourceToken, uint256 _amount) external override notEnded whenNotPaused {
+    function deposit(uint8 _comboId, address _tokenIn, uint256 _amount) external override notEnded whenNotPaused {
         require (combos.length > _comboId, "STAKE-4");
 
         if (totalDeposit + _amount >= maxDeposit) {
@@ -187,23 +191,23 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
             totalParticipants += 1;
         }
 
-        Combo memory combo = combos[_comboId];
-
-        Combo storage userCombo = userCombos[userCombos.length];
-        userCombo.creditRating = combo.creditRating;
-        
+        // Swapping the specified token as a Stacking Token combination
+        Combo storage combo = combos[_comboId];
         for (uint i = 0; i < combo.tokens.length; i++) {
-            ComboStakingToken memory token = combo.tokens[i];
-            token.staking.stakedTime = currentTime();
-            token.staking.amount = _calculateStakingTokenAmount(_sourceToken, _amount, token);
+            ComboStakingToken storage token = combo.tokens[i];
 
-            userCombo.tokens[i] = token;
+            uint256 amountIn = _calculateStakingTokenAmount(_amount, token);
+            token.staking.amount = _swapExactInputSingle(_tokenIn, amountIn, token.staking.token);
+            token.staking.stakedTime = currentTime();
         }
+
+        // Add new combo to userStakeDetail storage
+        userCombos.push(combo);
 
         // Update total deposit
         totalDeposit += _amount;
 
-        emit Deposited(msg.sender, _comboId, _sourceToken, _amount);
+        emit Deposited(msg.sender, _comboId, _tokenIn, _amount);
     }
 
     function redeem(uint8 _comboId) external override notEnded whenNotPaused {
@@ -215,7 +219,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
      * @param _combo the stakingToken information of combo
      */
     function appendCombo(Combo calldata _combo) external onlyOwner {
-        _setCombo(combos[combos.length], _combo);
+        combos.push(_combo);
     }
 
     /**
@@ -243,8 +247,6 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
 
     /**
      * @dev Convert the corresponding quantity based on weight and price
-     * 
-     * @param _sourceToken the source token
      * @param _amount the amound of source token
      * @param _stakingToken the staking token
      * @return _stakingTokenAmount the amount of staking token
@@ -252,10 +254,48 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
      * TODO: How to get token price??
      */
     function _calculateStakingTokenAmount(
-        address _sourceToken,
         uint256 _amount,
         ComboStakingToken memory _stakingToken
     ) internal pure returns (uint256) {
         return _amount * _stakingToken.weight / MAX_STAKING_TOKEN_WEIGHT;
+    }
+
+    /**
+     * @notice _swapExactInputSingle swaps a fixed amount of _tokenIn for a maximum possible amount of _tokenOut
+     * using the _tokenIn/_tokenOut 0.3% pool by calling `exactInputSingle` in the swap router.
+     * 
+     * link: https://docs.uniswap.org/contracts/v3/guides/swaps/single-swaps
+     * 
+     * @dev The calling address must approve this contract to spend at least `amountIn` worth of its _tokenIn for this function to succeed.
+     * @param _tokenIn token in
+     * @param _amountIn The exact amount of _tokenIn that will be swapped for _tokenOut.
+     * @param _tokenOut token out
+     * @return amountOut The amount of _tokenOut received.
+     */
+    function _swapExactInputSingle(address _tokenIn, uint256 _amountIn, address _tokenOut) internal returns (uint256 amountOut) {
+        // msg.sender must approve this contract
+
+        // Transfer the specified amount of _tokenIn to this contract.
+        TransferHelper.safeTransferFrom(_tokenIn, msg.sender, address(this), _amountIn);
+
+        // Approve the router to spend _tokenIn.
+        TransferHelper.safeApprove(_tokenIn, address(swapRouter), _amountIn);
+
+        // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
+        // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
+        ISwapRouter.ExactInputSingleParams memory params =
+            ISwapRouter.ExactInputSingleParams({
+                tokenIn: _tokenIn,
+                tokenOut: _tokenOut,
+                fee: ISWAP_POOL_FEE,
+                recipient: msg.sender,
+                deadline: currentTime() + 15,
+                amountIn: _amountIn,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            });
+
+        // The call to `exactInputSingle` executes the swap.
+        amountOut = swapRouter.exactInputSingle(params);
     }
 }
