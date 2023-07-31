@@ -6,5 +6,6 @@
     "STAKE-5": "Reached the maximum deposit amount",
     "STAKE-6": "Must exceed the minimal deposit amount",
     "STAKE-7": "Reached the maximum deposit amount a user can stake",
-    "STAKE-8": "Reached the maximum number of staking per user"
+    "STAKE-8": "Reached the maximum number of staking per user",
+    "STAKE-9": "No stacking of any tokens"
 }

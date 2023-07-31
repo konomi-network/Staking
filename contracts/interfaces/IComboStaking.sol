@@ -9,9 +9,15 @@ interface IComboStaking {
         string name;
         // the address of token, i.e. ETH、LINK、UNI token address.
         address token;
+
+        // APY should be fetched dynamically
+    }
+
+    struct UserStake {
+        // The staking token id
+        uint16 stakingTokenId;
         // the amount of token
         uint256 amount;
-        // APY should be fetched dynamically
         // The time that the user performed the staking
         uint256 stakedTime;
     }
@@ -46,7 +52,7 @@ interface IComboStaking {
     event Redeemed(address who, uint8 comboId);
 
     function listAllCombos() external view returns (Combo[] memory);
-    function listUserStakeDetails(address _who) external view returns (Combo[] memory);
+    function listUserStakeDetails(address _who) external view returns (UserStake[] memory);
     function averageAPY(uint8 _comboId) external view returns (uint256);
     
     function deposit(uint8 _comboId, address _sourceToken, uint256 _amount) external;

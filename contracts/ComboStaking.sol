@@ -39,7 +39,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     // @dev Get Combo method:
     // Combo[] memory userStake = userStakeDetail[msg.sender]
     // Combo combo = userStake[comboId]
-    mapping(address => Combo[]) public userStakeDetail;
+    mapping(address => UserStake[]) public userStakeDetail;
     // The mapping that tracks the total amount staked of an address
     mapping(address => uint256) public userTotalStake;
 
@@ -152,7 +152,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
      * Get the staking amount that can be redeem
      * @param _who The address to check
      */
-    function listUserStakeDetails(address _who) external view override returns (Combo[] memory) {
+    function listUserStakeDetails(address _who) external view override returns (UserStake[] memory) {
         require(_who == _msgSender() || owner() == _msgSender(), "STAKE-3");
         return userStakeDetail[_who];
     }
@@ -183,11 +183,11 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         require(userStake <= maxPerUserDeposit, "STAKE-7");
         userTotalStake[msg.sender] = userStake;
 
-        Combo[] storage userCombos = userStakeDetail[msg.sender];
+        UserStake[] storage userStakes = userStakeDetail[msg.sender];
 
         // Update user staking details
-        require(userCombos.length < MAX_STAKING_PER_USER, "STAKE-8");
-        if (userCombos.length == 0) {
+        require(userStakes.length < MAX_STAKING_PER_USER, "STAKE-8");
+        if (userStakes.length == 0) {
             totalParticipants += 1;
         }
 
@@ -197,12 +197,17 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
             ComboStakingToken storage token = combo.tokens[i];
 
             uint256 amountIn = _calculateStakingTokenAmount(_amount, token);
-            token.staking.amount = _swapExactInputSingle(_tokenIn, amountIn, token.staking.token);
-            token.staking.stakedTime = currentTime();
-        }
 
-        // Add new combo to userStakeDetail storage
-        userCombos.push(combo);
+            uint256 amount = _swapExactInputSingle(_tokenIn, amountIn, token.staking.token);
+            uint256 stakedTime = currentTime();
+
+            // Add new combo to userStakeDetail storage
+            userStakes.push(UserStake({
+                stakingTokenId: token.staking.id,
+                amount: amount,
+                stakedTime: stakedTime
+            }));
+        }
 
         // Update total deposit
         totalDeposit += _amount;
@@ -211,7 +216,12 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     }
 
     function redeem(uint8 _comboId) external override notEnded whenNotPaused {
+        require(userStakeDetail[msg.sender].length > 0, "STAKE-9");
+        require(userStakeDetail[msg.sender].length > _comboId, "STAKE-4");
 
+        UserStake memory userStake = userStakeDetail[msg.sender][_comboId];
+
+        emit Redeemed(msg.sender, _comboId);
     }
 
     /**
