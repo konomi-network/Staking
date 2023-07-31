@@ -35,10 +35,6 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     Combo[] public combos;
 
     // The mapping that tracks all the users staking metadata
-    //
-    // @dev Get Combo method:
-    // Combo[] memory userStake = userStakeDetail[msg.sender]
-    // Combo combo = userStake[comboId]
     mapping(address => UserStake[]) public userStakeDetail;
     // The mapping that tracks the total amount staked of an address
     mapping(address => uint256) public userTotalStake;

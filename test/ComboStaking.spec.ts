@@ -54,7 +54,7 @@ describe("ComboStaking", function () {
         swapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
 
         const DEFAULT_COMBOS = [{
-            creditRating: 1,
+            creditRating: 0,
             tokens: [{
                     weight: 30,
                     staking: {
@@ -67,6 +67,26 @@ describe("ComboStaking", function () {
                     weight: 70,
                     staking: {
                         id: 1,
+                        name: 'LINK',
+                        token: await tokenLink.getAddress(),
+                    }
+                }
+            ]
+        },
+        {
+            creditRating: 1,
+            tokens: [{
+                    weight: 60,
+                    staking: {
+                        id: 10,
+                        name: 'ETH',
+                        token: await tokenEth.getAddress(),
+                    }
+                },
+                {
+                    weight: 40,
+                    staking: {
+                        id: 20,
                         name: 'LINK',
                         token: await tokenLink.getAddress(),
                     }
@@ -120,7 +140,7 @@ describe("ComboStaking", function () {
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
             const connect = toTestContract.connect(sender);
             await expect(connect.deposit(0, tokenAddr, 1000)).to.emit(toTestContract, 'Deposited');
-            await expect(connect.deposit(0, tokenAddr, 2000)).to.emit(toTestContract, 'Deposited');
+            await expect(connect.deposit(1, tokenAddr, 2000)).to.emit(toTestContract, 'Deposited');
 
             const userDetail = await connect.listUserStakeDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(4);
@@ -131,11 +151,11 @@ describe("ComboStaking", function () {
             expect(userDetail[1].stakingTokenId).to.eq(1);
             expect(userDetail[1].amount).to.eq(700);
 
-            expect(userDetail[2].stakingTokenId).to.eq(0);
-            expect(userDetail[2].amount).to.eq(600);
+            expect(userDetail[2].stakingTokenId).to.eq(10);
+            expect(userDetail[2].amount).to.eq(1200);
 
-            expect(userDetail[3].stakingTokenId).to.eq(1);
-            expect(userDetail[3].amount).to.eq(1400);
+            expect(userDetail[3].stakingTokenId).to.eq(20);
+            expect(userDetail[3].amount).to.eq(800);
         });
     });
 });
