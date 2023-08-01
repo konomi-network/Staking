@@ -12,6 +12,10 @@ import {
     deployContractWithDeployer
 } from './utils';
 
+const STAKING_FEE = 1000;
+const MIN_DEPOSIT_AMOUNT = 100n;
+const MAX_DEPOSIT = expandTo18Decimals(10000000);;
+const MAX_PER_USER_DEPOSIT = expandTo18Decimals(100000);
 const TEST_AMOUNT = expandTo18Decimals(10000);
 
 function expandTo18Decimals(n: number): BigInt {
@@ -25,7 +29,13 @@ const advanceBlocks = async (blockNumber: number) => {
     }
 };
 
+const calcFee = (amount: number) => {
+    return amount * STAKING_FEE / 10000;
+}
+
 describe("ComboStaking", function () {
+    let tokenStakingFee: Contract;
+
     let token: Contract;
     let tokenEth: Contract;
     let tokenLink: Contract;
@@ -37,16 +47,13 @@ describe("ComboStaking", function () {
     let sender: Signer;
     let user1: Signer;
 
-    const MAX_DEPOSIT = expandTo18Decimals(10000000);;
-    const MAX_PER_USER_DEPOSIT = expandTo18Decimals(100000);
-    const MIN_DEPOSIT_AMOUNT = 100n;
-
     beforeEach(async () => {
         [deployer, sender, user1] = await ethers.getSigners();
 
         const isSilent = true;
 
         const mockErc20ContractName = 'MockERC20';
+        tokenStakingFee = await deployContractWithDeployer(deployer, mockErc20ContractName, ['SKF', 'SKF'], isSilent);
         token = await deployContractWithDeployer(deployer, mockErc20ContractName, ['USDA', 'USDA'], isSilent);
         tokenEth = await deployContractWithDeployer(deployer, mockErc20ContractName, ['ETH', 'ETH'], isSilent);
         tokenLink = await deployContractWithDeployer(deployer, mockErc20ContractName, ['LINK', 'LINK'], isSilent);
@@ -54,45 +61,46 @@ describe("ComboStaking", function () {
         swapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
 
         const DEFAULT_COMBOS = [{
-            creditRating: 0,
-            tokens: [{
-                    weight: 30,
-                    staking: {
-                        id: 0,
-                        name: 'ETH',
-                        token: await tokenEth.getAddress(),
+                creditRating: 0,
+                tokens: [{
+                        weight: 30,
+                        staking: {
+                            id: 0,
+                            name: 'ETH',
+                            token: await tokenEth.getAddress(),
+                        }
+                    },
+                    {
+                        weight: 70,
+                        staking: {
+                            id: 1,
+                            name: 'LINK',
+                            token: await tokenLink.getAddress(),
+                        }
                     }
-                },
-                {
-                    weight: 70,
-                    staking: {
-                        id: 1,
-                        name: 'LINK',
-                        token: await tokenLink.getAddress(),
+                ]
+            },
+            {
+                creditRating: 1,
+                tokens: [{
+                        weight: 60,
+                        staking: {
+                            id: 10,
+                            name: 'ETH',
+                            token: await tokenEth.getAddress(),
+                        }
+                    },
+                    {
+                        weight: 40,
+                        staking: {
+                            id: 20,
+                            name: 'LINK',
+                            token: await tokenLink.getAddress(),
+                        }
                     }
-                }
-            ]
-        },
-        {
-            creditRating: 1,
-            tokens: [{
-                    weight: 60,
-                    staking: {
-                        id: 10,
-                        name: 'ETH',
-                        token: await tokenEth.getAddress(),
-                    }
-                },
-                {
-                    weight: 40,
-                    staking: {
-                        id: 20,
-                        name: 'LINK',
-                        token: await tokenLink.getAddress(),
-                    }
-                }
-            ]
-        }]
+                ]
+            }
+        ]
 
         /*
             uint256 _maxDeposit,
@@ -108,7 +116,9 @@ describe("ComboStaking", function () {
             isSilent,
         );
 
-        await toTestContract.initialize(MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, await swapRouterContract.getAddress(), DEFAULT_COMBOS);
+        const tokenStakingFeeAddr = await tokenStakingFee.getAddress();
+        const uniswapRouterAddr = await swapRouterContract.getAddress();
+        await toTestContract.initialize(tokenStakingFeeAddr, STAKING_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
     });
 
     describe('Deposited', () => {
@@ -145,17 +155,17 @@ describe("ComboStaking", function () {
             const userDetail = await connect.listUserStakeDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(4);
 
-            expect(userDetail[0].stakingTokenId).to.eq(0);
-            expect(userDetail[0].amount).to.eq(300);
+            expect(userDetail[0].stakingId).to.eq(0);
+            expect(userDetail[0].amount).to.eq(300 - calcFee(300));
 
-            expect(userDetail[1].stakingTokenId).to.eq(1);
-            expect(userDetail[1].amount).to.eq(700);
+            expect(userDetail[1].stakingId).to.eq(1);
+            expect(userDetail[1].amount).to.eq(700 - calcFee(700));
 
-            expect(userDetail[2].stakingTokenId).to.eq(10);
-            expect(userDetail[2].amount).to.eq(1200);
+            expect(userDetail[2].stakingId).to.eq(10);
+            expect(userDetail[2].amount).to.eq(1200 - calcFee(1200));
 
-            expect(userDetail[3].stakingTokenId).to.eq(20);
-            expect(userDetail[3].amount).to.eq(800);
+            expect(userDetail[3].stakingId).to.eq(20);
+            expect(userDetail[3].amount).to.eq(800 - calcFee(800));
         });
     });
 });

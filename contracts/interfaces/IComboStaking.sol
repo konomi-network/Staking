@@ -14,9 +14,9 @@ interface IComboStaking {
     }
 
     struct UserStake {
-        // The staking token id
-        uint16 stakingTokenId;
-        // the amount of token
+        // The id of staking token
+        uint16 stakingId;
+        // The amount of staking token
         uint256 amount;
         // The time that the user performed the staking
         uint256 stakedTime;
@@ -48,15 +48,16 @@ interface IComboStaking {
     }
 
     /// Events
-    event Deposited(address who, uint8 comboId, address sourceToken, uint256 amount);
-    event Redeemed(address who, uint8 comboId);
+    event Deposited(address who, uint8 comboId, address tokenIn, uint256 amountIn, uint256 amountFee);
+    event Redeemed(address who, uint16 stakingId);
     event AddCombo(address who, Combo newCombo);
     event RemoveCombo(address who, uint8 comboId, Combo oldCombo);
+    event ExactStakingFee(address who, address tokenIn, uint256 amountIn, uint256 fee);
 
     function listAllCombos() external view returns (Combo[] memory);
     function listUserStakeDetails(address _who) external view returns (UserStake[] memory);
     function averageAPY(uint8 _comboId) external view returns (uint256);
     
-    function deposit(uint8 _comboId, address _sourceToken, uint256 _amount) external;
-    function redeem(uint8 _comboId) external;
+    function deposit(uint8 _comboId, address _tokenIn, uint256 _amountIn) external;
+    function redeem(uint16 _stakingId) external;
 }

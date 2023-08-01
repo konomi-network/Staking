@@ -29,6 +29,10 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     using Math for uint256;
     using SafeERC20 for IERC20;
 
+    // The underlying staking token
+    IERC20 public stakingFeeToken;
+
+    // The swapRouter of uniswap-v3
     ISwapRouter public swapRouter;
 
     // The combos of the staking options.
@@ -61,6 +65,12 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     // Whether the staking has ended
     bool public stakingEnded;
 
+    // Staking platform fee, default: 0.1%, when collect during deposit
+    uint24 public stakingFee = 1000;
+
+    // The fee unit
+    uint24 public constant ONE_FEER = 10000;
+
     // Uniswap pool fee, 0.3%
     uint24 public constant ISWAP_POOL_FEE = 3000;
 
@@ -68,7 +78,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     uint16 public constant VERSION = 1;
 
     // Maximum number of staking per user
-    uint8 private constant MAX_STAKING_PER_USER = 255;
+    uint16 private constant MAX_STAKING_PER_USER = 1024;
 
     // Maximum weight of staking token
     uint8 private constant MAX_STAKING_TOKEN_WEIGHT = 100;
@@ -93,10 +103,12 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     }
 
     function initialize(
+        address _stakingFeeToken,
+        uint24 _stakingFee,
+        ISwapRouter _swapRouter,
         uint256 _maxDeposit,
         uint256 _maxPerUserDeposit,
         uint256 _minDepositAmount,
-        ISwapRouter _swapRouter,
         Combo[] calldata _combos
     ) external initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -104,6 +116,9 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         __Pausable_init();
 
         _combosInit(_combos);
+
+        stakingFeeToken = IERC20(_stakingFeeToken);
+        stakingFee = _stakingFee;
 
         swapRouter = _swapRouter;
 
@@ -166,20 +181,20 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         return 1;
     }
 
-    function deposit(uint8 _comboId, address _tokenIn, uint256 _amount) external override notEnded whenNotPaused {
+    function deposit(uint8 _comboId, address _tokenIn, uint256 _amountIn) external override notEnded whenNotPaused {
         require (combos.length > _comboId, "STAKE-4");
 
-        if (totalDeposit + _amount >= maxDeposit) {
+        if (totalDeposit + _amountIn >= maxDeposit) {
             // The max deposit will be reached, cap the amount
-            _amount = _amount.min(maxDeposit - totalDeposit);
+            _amountIn = _amountIn.min(maxDeposit - totalDeposit);
             // _amount == 0 means max deposit is reached
-            require(_amount != 0, "STAKE-5");
+            require(_amountIn != 0, "STAKE-5");
         } else {
-            require(_amount >= minDepositAmount, "STAKE-6");
+            require(_amountIn >= minDepositAmount, "STAKE-6");
         }
 
         // Update user total stake amount
-        uint256 userStake = userTotalStake[msg.sender] + _amount;
+        uint256 userStake = userTotalStake[msg.sender] + _amountIn;
         require(userStake <= maxPerUserDeposit, "STAKE-7");
         userTotalStake[msg.sender] = userStake;
 
@@ -187,6 +202,11 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
 
         // Update user staking details
         require(userStakes.length < MAX_STAKING_PER_USER, "STAKE-8");
+
+        // Collect platform fees
+        uint256 _amountFee = _collectStakingFee(_tokenIn, _amountIn);
+        _amountIn = _amountIn - _amountFee;
+
         if (userStakes.length == 0) {
             totalParticipants += 1;
         }
@@ -196,32 +216,31 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         for (uint i = 0; i < combo.tokens.length; i++) {
             ComboStakingToken storage token = combo.tokens[i];
 
-            uint256 amountIn = _calculateStakingTokenAmount(_amount, token);
-
-            uint256 amount = _swapExactInputSingle(_tokenIn, amountIn, token.staking.token);
+            uint256 tokenAmountIn = _calculateTokenAmount(_amountIn, token.weight);
+            uint256 tokenAmountOut = _swapExactInputSingle(_tokenIn, tokenAmountIn, token.staking.token);
             uint256 stakedTime = currentTime();
 
             // Add new combo to userStakeDetail storage
             userStakes.push(UserStake({
-                stakingTokenId: token.staking.id,
-                amount: amount,
+                stakingId: token.staking.id,
+                amount: tokenAmountOut,
                 stakedTime: stakedTime
             }));
         }
 
         // Update total deposit
-        totalDeposit += _amount;
+        totalDeposit += _amountIn;
 
-        emit Deposited(msg.sender, _comboId, _tokenIn, _amount);
+        emit Deposited(msg.sender, _comboId, _tokenIn, _amountIn, _amountFee);
     }
 
-    function redeem(uint8 _comboId) external override notEnded whenNotPaused {
+    function redeem(uint16 _stakingId) external override notEnded whenNotPaused {
         require(userStakeDetail[msg.sender].length > 0, "STAKE-9");
-        require(userStakeDetail[msg.sender].length > _comboId, "STAKE-4");
+        require(userStakeDetail[msg.sender].length > _stakingId, "STAKE-4");
 
-        UserStake memory userStake = userStakeDetail[msg.sender][_comboId];
+        UserStake memory userStake = userStakeDetail[msg.sender][_stakingId];
 
-        emit Redeemed(msg.sender, _comboId);
+        emit Redeemed(msg.sender, _stakingId);
     }
 
     /**
@@ -262,18 +281,53 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     }
 
     /**
-     * @dev Convert the corresponding quantity based on weight and price
-     * @param _amount the amound of source token
-     * @param _stakingToken the staking token
-     * @return _stakingTokenAmount the amount of staking token
-     * 
-     * TODO: How to get token price??
+     * @dev Delete user stake by account address and stakingId
+     * @param _who account address
+     * @param _stakingId The id of staking
      */
-    function _calculateStakingTokenAmount(
-        uint256 _amount,
-        ComboStakingToken memory _stakingToken
-    ) internal pure returns (uint256) {
-        return _amount * _stakingToken.weight / MAX_STAKING_TOKEN_WEIGHT;
+    function _deleteUserStake(address _who, uint16 _stakingId) internal {
+        UserStake[] storage userStakes = userStakeDetail[_who];
+        if (userStakes.length == 1) {
+            delete userStakeDetail[_who];
+            delete userTotalStake[_who];
+            if (totalParticipants > 0) {
+                totalParticipants -= 1;
+            }
+        } else {
+            userStakeDetail[_who][_stakingId] = userStakeDetail[_who][userStakes.length - 1];
+            userStakeDetail[_who].pop();
+        }
+    }
+
+    /**
+     * Collect staking fee
+     * @param _tokenIn the tokenIn
+     * @param _amountIn the amound of tokenIn
+     * @return amountFee
+     */
+    function _collectStakingFee(address _tokenIn, uint256 _amountIn) internal returns (uint256 amountFee) {
+        amountFee = _calculatStakingFee(_amountIn);
+        _swapExactInputSingle(_tokenIn, amountFee, address(stakingFeeToken));
+        emit ExactStakingFee(msg.sender, _tokenIn, _amountIn, amountFee);
+    }
+
+    /**
+     * @dev Calculate staking fee
+     * @param _amountIn the amound of tokenIn
+     * @return amountFee
+     */
+    function _calculatStakingFee(uint256 _amountIn) internal view returns (uint256) {
+        return _amountIn * stakingFee / ONE_FEER;
+    }
+
+    /**
+     * @dev Convert the corresponding quantity based on weight and price
+     * @param _amount the amound of tokenIn
+     * @param _stakingTokenWeight the weight of staking token
+     * @return _stakingTokenAmount - the amount of staking token
+     */
+    function _calculateTokenAmount(uint256 _amount, uint8 _stakingTokenWeight) internal pure returns (uint256) {
+        return _amount * _stakingTokenWeight / MAX_STAKING_TOKEN_WEIGHT;
     }
 
     /**
