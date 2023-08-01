@@ -68,9 +68,9 @@ interface IComboStaking {
         Combo[] calldata _combos
     ) external;
     function listAllCombos() external view returns (Combo[] memory);
-    function listUserStakeDetails(address _who) external view returns (UserStake[] memory);
-    function averageAPY(uint8 _comboId) external view returns (uint256);
+    function listUserStakeDetails(address who) external view returns (UserStake[] memory);
+    function averageAPY(uint8 comboId) external view returns (uint256);
     
-    function deposit(uint8 _comboId, uint256 _amountIn) external;
-    function redeem(uint16 _stakingId) external;
+    function deposit(uint8 comboId, uint256 amountIn) external;
+    function redeem(uint16 stakingId) external;
 }

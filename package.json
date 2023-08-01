@@ -57,6 +57,7 @@
     "yarn-upgrade-all": "^0.7.2"
   },
   "dependencies": {
+    "@aave/core-v3": "^1.18.0",
     "@openzeppelin/contracts": "^4.9.2",
     "@openzeppelin/contracts-upgradeable": "^4.9.2",
     "@uniswap/v3-core": "^1.0.1",

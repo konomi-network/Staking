@@ -14,8 +14,8 @@ import {
     deployContractWithUpgradesDeployer
 } from './utils';
 import {
-    StakingTokenPool__factory
-} from '../typechain-types/factories/contracts';
+    AaveStakingPool__factory
+} from '../typechain-types/factories/contracts/staking';
 
 const STAKING_FEE = 1000;
 const MIN_DEPOSIT_AMOUNT = 100n;
@@ -40,10 +40,12 @@ const calcFee = (amount: number) => {
 
 describe("ComboStaking", function () {
     let token: Contract;
+    let tokenA: Contract;
     let tokenEth: Contract;
     let tokenLink: Contract;
 
-    let stakingTokenPoolContract: Contract;
+    let stakingPoolContract: Contract;
+    let aavePoolContract: Contract;
     let swapRouterContract: Contract;
 
     let stakingContract: Contract;
@@ -61,6 +63,7 @@ describe("ComboStaking", function () {
         const isSilent = true;
         const mockErc20ContractName = 'MockERC20';
         token = await deployContractWithDeployer(deployer, mockErc20ContractName, ['USDA', 'USDA'], isSilent);
+        tokenA = await deployContractWithDeployer(deployer, mockErc20ContractName, ['aToken', 'aToken'], isSilent);
         tokenEth = await deployContractWithDeployer(deployer, mockErc20ContractName, ['ETH', 'ETH'], isSilent);
         tokenLink = await deployContractWithDeployer(deployer, mockErc20ContractName, ['LINK', 'LINK'], isSilent);
 
@@ -68,6 +71,7 @@ describe("ComboStaking", function () {
 
         stakingContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
         stakingAaveContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
+        aavePoolContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
 
         const DEFAULT_COMBOS = [{
                 creditRating: 0,
@@ -133,13 +137,10 @@ describe("ComboStaking", function () {
         const uniswapRouterAddr = await swapRouterContract.getAddress();
         await toTestContract.initialize(tokenAddr, STAKING_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
         
-        stakingTokenPoolContract = await deployContractWithUpgradesDeployer(
-            'stakingTokenPool',
-            new StakingTokenPool__factory(deployer),
-            [await toTestContract.getAddress(), [await updater.getAddress()], await stakingContract.getAddress()],
-            isSilent
-        );
-        await toTestContract.setStakingTokenPool(await stakingTokenPoolContract.getAddress());
+        const aTokenAddr = await tokenA.getAddress();
+        const aavePoolAddr = await aavePoolContract.getAddress();
+        stakingPoolContract = await deployContractWithDeployer(deployer, 'AaveStakingPool', [aavePoolAddr, aTokenAddr, tokenAddr], isSilent);
+        await toTestContract.setStakingTokenPool(await stakingPoolContract.getAddress());
     });
 
     describe('Deposited', () => {
