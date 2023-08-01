@@ -30,7 +30,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     using SafeERC20 for IERC20;
 
     // The underlying staking token
-    IERC20 public stakingFeeToken;
+    IERC20 public stakingToken;
 
     // The swapRouter of uniswap-v3
     ISwapRouter public swapRouter;
@@ -103,7 +103,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     }
 
     function initialize(
-        address _stakingFeeToken,
+        address _stakingToken,
         uint24 _stakingFee,
         ISwapRouter _swapRouter,
         uint256 _maxDeposit,
@@ -117,7 +117,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
 
         _combosInit(_combos);
 
-        stakingFeeToken = IERC20(_stakingFeeToken);
+        stakingToken = IERC20(_stakingToken);
         stakingFee = _stakingFee;
 
         swapRouter = _swapRouter;
@@ -181,7 +181,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         return 1;
     }
 
-    function deposit(uint8 _comboId, address _tokenIn, uint256 _amountIn) external override notEnded whenNotPaused {
+    function deposit(uint8 _comboId, uint256 _amountIn) external override notEnded whenNotPaused {
         require (combos.length > _comboId, "STAKE-4");
 
         if (totalDeposit + _amountIn >= maxDeposit) {
@@ -204,7 +204,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         require(userStakes.length < MAX_STAKING_PER_USER, "STAKE-8");
 
         // Collect platform fees
-        uint256 _amountFee = _collectStakingFee(_tokenIn, _amountIn);
+        uint256 _amountFee = _collectStakingFee(_amountIn);
         _amountIn = _amountIn - _amountFee;
 
         if (userStakes.length == 0) {
@@ -217,7 +217,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
             ComboStakingToken storage token = combo.tokens[i];
 
             uint256 tokenAmountIn = _calculateTokenAmount(_amountIn, token.weight);
-            uint256 tokenAmountOut = _swapExactInputSingle(_tokenIn, tokenAmountIn, token.staking.token);
+            uint256 tokenAmountOut = _swapExactInputSingle(address(stakingToken), tokenAmountIn, token.staking.token);
             uint256 stakedTime = currentTime();
 
             // Add new combo to userStakeDetail storage
@@ -231,7 +231,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         // Update total deposit
         totalDeposit += _amountIn;
 
-        emit Deposited(msg.sender, _comboId, _tokenIn, _amountIn, _amountFee);
+        emit Deposited(msg.sender, _comboId, _amountIn, _amountFee);
     }
 
     function redeem(uint16 _stakingId) external override notEnded whenNotPaused {
@@ -239,6 +239,8 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         require(userStakeDetail[msg.sender].length > _stakingId, "STAKE-4");
 
         UserStake memory userStake = userStakeDetail[msg.sender][_stakingId];
+
+        _deleteUserStake(msg.sender, _stakingId);
 
         emit Redeemed(msg.sender, _stakingId);
     }
@@ -301,14 +303,13 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
 
     /**
      * Collect staking fee
-     * @param _tokenIn the tokenIn
-     * @param _amountIn the amound of tokenIn
+     * @param _amountIn the amound of token
      * @return amountFee
      */
-    function _collectStakingFee(address _tokenIn, uint256 _amountIn) internal returns (uint256 amountFee) {
+    function _collectStakingFee(uint256 _amountIn) internal returns (uint256 amountFee) {
         amountFee = _calculatStakingFee(_amountIn);
-        _swapExactInputSingle(_tokenIn, amountFee, address(stakingFeeToken));
-        emit ExactStakingFee(msg.sender, _tokenIn, _amountIn, amountFee);
+        stakingToken.safeTransferFrom(msg.sender, address(this), amountFee);
+        emit ExactStakingFee(msg.sender, _amountIn, amountFee);
     }
 
     /**

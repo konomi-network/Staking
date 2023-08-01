@@ -48,16 +48,16 @@ interface IComboStaking {
     }
 
     /// Events
-    event Deposited(address who, uint8 comboId, address tokenIn, uint256 amountIn, uint256 amountFee);
+    event Deposited(address who, uint8 comboId, uint256 amountIn, uint256 amountFee);
     event Redeemed(address who, uint16 stakingId);
     event AddCombo(address who, Combo newCombo);
     event RemoveCombo(address who, uint8 comboId, Combo oldCombo);
-    event ExactStakingFee(address who, address tokenIn, uint256 amountIn, uint256 fee);
+    event ExactStakingFee(address who, uint256 amountIn, uint256 fee);
 
     function listAllCombos() external view returns (Combo[] memory);
     function listUserStakeDetails(address _who) external view returns (UserStake[] memory);
     function averageAPY(uint8 _comboId) external view returns (uint256);
     
-    function deposit(uint8 _comboId, address _tokenIn, uint256 _amountIn) external;
+    function deposit(uint8 _comboId, uint256 _amountIn) external;
     function redeem(uint16 _stakingId) external;
 }

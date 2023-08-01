@@ -34,8 +34,6 @@ const calcFee = (amount: number) => {
 }
 
 describe("ComboStaking", function () {
-    let tokenStakingFee: Contract;
-
     let token: Contract;
     let tokenEth: Contract;
     let tokenLink: Contract;
@@ -53,7 +51,6 @@ describe("ComboStaking", function () {
         const isSilent = true;
 
         const mockErc20ContractName = 'MockERC20';
-        tokenStakingFee = await deployContractWithDeployer(deployer, mockErc20ContractName, ['SKF', 'SKF'], isSilent);
         token = await deployContractWithDeployer(deployer, mockErc20ContractName, ['USDA', 'USDA'], isSilent);
         tokenEth = await deployContractWithDeployer(deployer, mockErc20ContractName, ['ETH', 'ETH'], isSilent);
         tokenLink = await deployContractWithDeployer(deployer, mockErc20ContractName, ['LINK', 'LINK'], isSilent);
@@ -116,9 +113,9 @@ describe("ComboStaking", function () {
             isSilent,
         );
 
-        const tokenStakingFeeAddr = await tokenStakingFee.getAddress();
+        const tokenAddr = await token.getAddress();
         const uniswapRouterAddr = await swapRouterContract.getAddress();
-        await toTestContract.initialize(tokenStakingFeeAddr, STAKING_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
+        await toTestContract.initialize(tokenAddr, STAKING_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
     });
 
     describe('Deposited', () => {
@@ -133,7 +130,7 @@ describe("ComboStaking", function () {
                 'Approval',
             );
 
-            const tx = toTestContract.connect(sender).deposit(0, tokenAddr, MIN_DEPOSIT_AMOUNT - 1n);
+            const tx = toTestContract.connect(sender).deposit(0, MIN_DEPOSIT_AMOUNT - 1n);
             await expect(tx).to.be.revertedWith('STAKE-6');
         });
 
@@ -149,8 +146,8 @@ describe("ComboStaking", function () {
             );
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
             const connect = toTestContract.connect(sender);
-            await expect(connect.deposit(0, tokenAddr, 1000)).to.emit(toTestContract, 'Deposited');
-            await expect(connect.deposit(1, tokenAddr, 2000)).to.emit(toTestContract, 'Deposited');
+            await expect(connect.deposit(0, 1000)).to.emit(toTestContract, 'Deposited');
+            await expect(connect.deposit(1, 2000)).to.emit(toTestContract, 'Deposited');
 
             const userDetail = await connect.listUserStakeDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(4);
