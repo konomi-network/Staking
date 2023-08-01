@@ -108,7 +108,6 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     function initialize(
         address _stakingToken,
         uint24 _stakingFee,
-        address _stakingTokenPool,
         address _swapRouter,
         uint256 _maxDeposit,
         uint256 _maxPerUserDeposit,
@@ -124,7 +123,6 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         stakingToken = IERC20(_stakingToken);
         stakingFee = _stakingFee;
 
-        stakingTokenPool = _stakingTokenPool;
         swapRouter = _swapRouter;
 
         totalDeposit = 0;
@@ -396,6 +394,10 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         combos.pop();
 
         emit RemoveCombo(msg.sender, _comboId, oldCombo);
+    }
+
+    function setStakingTokenPool(address _stakingTokenPool) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        stakingTokenPool = _stakingTokenPool;
     }
 
     /**

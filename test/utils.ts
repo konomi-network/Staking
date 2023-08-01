@@ -1,13 +1,18 @@
 import {
-    Contract, Signer
+    Contract,
+    Signer,
+    ContractFactory
 } from 'ethers';
-import { ethers } from 'hardhat';
+import {
+    ethers,
+    upgrades
+} from 'hardhat';
 
 export async function deployContractWithDeployer(
     deployer: Signer,
     contractName: string,
     args: unknown[],
-    isSilent ? : boolean,
+    isSilent?: boolean,
 ): Promise<Contract> {
     if (!isSilent) {
         console.log(`>>> deploy contract: ${contractName} with (${args.length}) args:`, ...args);
@@ -24,6 +29,26 @@ export async function deployContractWithDeployer(
 
     if (!isSilent) {
         console.log(`>> contract ${contractName} deployed with address ${contractAddr}`);
+    }
+    return contract;
+}
+
+export async function deployContractWithUpgradesDeployer(
+    contractName: string,
+    contractFactory: ContractFactory,
+    args: unknown[],
+    isSilent?: boolean,
+): Promise<Contract> {
+    if (!isSilent) {
+        console.log(`>>> deploy contract: ${contractName} with (${args.length}) args:`, ...args);
+    }
+
+    const contract = await upgrades.deployProxy(contractFactory, args, {
+        kind: 'uups'
+    });
+
+    if (!isSilent) {
+        console.log(`>> contract ${contractName} deployed with address ${await contract.getAddress()}`);
     }
     return contract;
 }

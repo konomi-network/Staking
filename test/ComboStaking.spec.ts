@@ -6,11 +6,16 @@ import {
     Signer
 } from 'ethers';
 import {
-    ethers
+    ethers,
+    upgrades
 } from 'hardhat';
 import {
-    deployContractWithDeployer
+    deployContractWithDeployer,
+    deployContractWithUpgradesDeployer
 } from './utils';
+import {
+    StakingTokenPool__factory
+} from '../typechain-types/factories/contracts';
 
 const STAKING_FEE = 1000;
 const MIN_DEPOSIT_AMOUNT = 100n;
@@ -48,19 +53,17 @@ describe("ComboStaking", function () {
 
     let deployer: Signer;
     let sender: Signer;
-    let user1: Signer;
+    let updater: Signer;
 
     beforeEach(async () => {
-        [deployer, sender, user1] = await ethers.getSigners();
+        [deployer, sender, updater] = await ethers.getSigners();
 
         const isSilent = true;
-
         const mockErc20ContractName = 'MockERC20';
         token = await deployContractWithDeployer(deployer, mockErc20ContractName, ['USDA', 'USDA'], isSilent);
         tokenEth = await deployContractWithDeployer(deployer, mockErc20ContractName, ['ETH', 'ETH'], isSilent);
         tokenLink = await deployContractWithDeployer(deployer, mockErc20ContractName, ['LINK', 'LINK'], isSilent);
 
-        stakingTokenPoolContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
         swapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
 
         stakingContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
@@ -127,9 +130,16 @@ describe("ComboStaking", function () {
         );
 
         const tokenAddr = await token.getAddress();
-        const stakingTokenPoolAddr = await stakingTokenPoolContract.getAddress();
         const uniswapRouterAddr = await swapRouterContract.getAddress();
-        await toTestContract.initialize(tokenAddr, STAKING_FEE, stakingTokenPoolAddr, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
+        await toTestContract.initialize(tokenAddr, STAKING_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
+        
+        stakingTokenPoolContract = await deployContractWithUpgradesDeployer(
+            'stakingTokenPool',
+            new StakingTokenPool__factory(deployer),
+            [await toTestContract.getAddress(), [await updater.getAddress()], await stakingContract.getAddress()],
+            isSilent
+        );
+        await toTestContract.setStakingTokenPool(await stakingTokenPoolContract.getAddress());
     });
 
     describe('Deposited', () => {

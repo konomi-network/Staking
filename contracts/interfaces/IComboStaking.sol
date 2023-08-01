@@ -57,10 +57,10 @@ interface IComboStaking {
     event ExactStakingFee(address who, uint256 amountIn, uint256 fee);
     event RewardPumped(address who, uint256 extendTo);
 
+    /// Methods
     function initialize(
         address _stakingToken,
         uint24 _stakingFee,
-        address _stakingTokenPool,
         address _swapRouter,
         uint256 _maxDeposit,
         uint256 _maxPerUserDeposit,
