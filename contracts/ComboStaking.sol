@@ -235,44 +235,31 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     }
 
     function redeem(uint16 _stakingId) external override notEnded whenNotPaused {
-        require(userStakeDetail[msg.sender].length > 0, "STAKE-9");
-        require(userStakeDetail[msg.sender].length > _stakingId, "STAKE-4");
+        UserStake[] storage userStakes = userStakeDetail[msg.sender];
+        require(userStakes.length > 0, "STAKE-9");
+        require(userStakes.length > _stakingId, "STAKE-4");
 
-        UserStake memory userStake = userStakeDetail[msg.sender][_stakingId];
+        UserStake memory userStake = userStakes[_stakingId];
+
+        // Get the user reward
+        uint256 userReward = 0;
+        // TODO: get averageAPY and calculateReward
+
+
+        // Perform deduction
+        uint256 totalDeduct = userStake.amount;
+
+        totalReward -= userReward;
+        totalDeposit -= userStake.amount;
+
+        userTotalStake[msg.sender] -= userStake.amount;
 
         _deleteUserStake(msg.sender, _stakingId);
 
-        emit Redeemed(msg.sender, _stakingId);
-    }
+        emit Redeemed(msg.sender, _stakingId, userStake.amount, userReward);
 
-    /**
-     * @dev support append and remove combo to combs? just support handle combo list
-     * @param _combo the stakingToken information of combo
-     */
-    function addCombo(Combo calldata _combo) external onlyOwner {
-        _newCombo(_combo);
-
-        emit AddCombo(msg.sender, _combo);
-    }
-
-    /**
-     * @dev Remove combo from _comboId
-     * @param _comboId the index of combo
-     */
-    function removeCombo(uint8 _comboId) external onlyOwner {
-        Combo memory oldCombo = combos[_comboId];
-
-        combos[_comboId] = combos[combos.length - 1];
-        combos.pop();
-
-        emit RemoveCombo(msg.sender, _comboId, oldCombo);
-    }
-
-    /**
-     * @dev end staking
-     */
-    function endStaking() external onlyOwner {
-        stakingEnded = true;
+        // Transfer
+        stakingToken.transfer(msg.sender, totalDeduct);
     }
 
     /**
@@ -368,5 +355,48 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
 
         // The call to `exactInputSingle` executes the swap.
         amountOut = swapRouter.exactInputSingle(params);
+    }
+
+    /**
+     * @notice just admin can do it
+     * 
+     * @dev Supply amount of reward into this contract
+     * @param _amount The amount of reward
+     */
+    function supplyReward(uint256 _amount) external onlyOwner {
+        stakingToken.transferFrom(msg.sender, address(this), _amount);
+        totalReward += _amount;
+
+        emit RewardPumped(msg.sender, _amount);
+    }
+
+    /**
+     * @dev support append and remove combo to combs? just support handle combo list
+     * @param _combo the stakingToken information of combo
+     */
+    function addCombo(Combo calldata _combo) external onlyOwner {
+        _newCombo(_combo);
+
+        emit AddCombo(msg.sender, _combo);
+    }
+
+    /**
+     * @dev Remove combo from _comboId
+     * @param _comboId the index of combo
+     */
+    function removeCombo(uint8 _comboId) external onlyOwner {
+        Combo memory oldCombo = combos[_comboId];
+
+        combos[_comboId] = combos[combos.length - 1];
+        combos.pop();
+
+        emit RemoveCombo(msg.sender, _comboId, oldCombo);
+    }
+
+    /**
+     * @dev end staking
+     */
+    function endStaking() external onlyOwner {
+        stakingEnded = true;
     }
 }

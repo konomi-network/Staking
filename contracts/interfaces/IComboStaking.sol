@@ -9,6 +9,8 @@ interface IComboStaking {
         string name;
         // the address of token, i.e. ETH、LINK、UNI token address.
         address token;
+        // the address of staking contract, i.e. AAVE、Compound contract address.
+        address stakingContract;
 
         // APY should be fetched dynamically
     }
@@ -49,10 +51,11 @@ interface IComboStaking {
 
     /// Events
     event Deposited(address who, uint8 comboId, uint256 amountIn, uint256 amountFee);
-    event Redeemed(address who, uint16 stakingId);
+    event Redeemed(address who, uint16 stakingId, uint256 amount, uint256 reward);
     event AddCombo(address who, Combo newCombo);
     event RemoveCombo(address who, uint8 comboId, Combo oldCombo);
     event ExactStakingFee(address who, uint256 amountIn, uint256 fee);
+    event RewardPumped(address who, uint256 extendTo);
 
     function listAllCombos() external view returns (Combo[] memory);
     function listUserStakeDetails(address _who) external view returns (UserStake[] memory);

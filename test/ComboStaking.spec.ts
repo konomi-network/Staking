@@ -39,6 +39,9 @@ describe("ComboStaking", function () {
     let tokenLink: Contract;
 
     let swapRouterContract: Contract;
+    let stakingContract: Contract;
+    let stakingAaveContract: Contract;
+
     let toTestContract: Contract;
 
     let deployer: Signer;
@@ -56,6 +59,8 @@ describe("ComboStaking", function () {
         tokenLink = await deployContractWithDeployer(deployer, mockErc20ContractName, ['LINK', 'LINK'], isSilent);
 
         swapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
+        stakingContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
+        stakingAaveContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
 
         const DEFAULT_COMBOS = [{
                 creditRating: 0,
@@ -65,6 +70,7 @@ describe("ComboStaking", function () {
                             id: 0,
                             name: 'ETH',
                             token: await tokenEth.getAddress(),
+                            stakingContract: await stakingContract.getAddress(),
                         }
                     },
                     {
@@ -73,6 +79,7 @@ describe("ComboStaking", function () {
                             id: 1,
                             name: 'LINK',
                             token: await tokenLink.getAddress(),
+                            stakingContract: await stakingContract.getAddress(),
                         }
                     }
                 ]
@@ -85,6 +92,7 @@ describe("ComboStaking", function () {
                             id: 10,
                             name: 'ETH',
                             token: await tokenEth.getAddress(),
+                            stakingContract: await stakingAaveContract.getAddress(),
                         }
                     },
                     {
@@ -93,6 +101,7 @@ describe("ComboStaking", function () {
                             id: 20,
                             name: 'LINK',
                             token: await tokenLink.getAddress(),
+                            stakingContract: await stakingAaveContract.getAddress(),
                         }
                     }
                 ]
