@@ -57,6 +57,16 @@ interface IComboStaking {
     event ExactStakingFee(address who, uint256 amountIn, uint256 fee);
     event RewardPumped(address who, uint256 extendTo);
 
+    function initialize(
+        address _stakingToken,
+        uint24 _stakingFee,
+        address _stakingTokenPool,
+        address _swapRouter,
+        uint256 _maxDeposit,
+        uint256 _maxPerUserDeposit,
+        uint256 _minDepositAmount,
+        Combo[] calldata _combos
+    ) external;
     function listAllCombos() external view returns (Combo[] memory);
     function listUserStakeDetails(address _who) external view returns (UserStake[] memory);
     function averageAPY(uint8 _comboId) external view returns (uint256);

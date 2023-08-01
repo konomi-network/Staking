@@ -32,8 +32,11 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     // The underlying staking token
     IERC20 public stakingToken;
 
+    // The contract of staking token pool, that support AAVE and compound protocol etc.
+    address public stakingTokenPool;
+
     // The swapRouter of uniswap-v3
-    ISwapRouter public swapRouter;
+    address public swapRouter;
 
     // The combos of the staking options.
     Combo[] public combos;
@@ -105,12 +108,13 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
     function initialize(
         address _stakingToken,
         uint24 _stakingFee,
-        ISwapRouter _swapRouter,
+        address _stakingTokenPool,
+        address _swapRouter,
         uint256 _maxDeposit,
         uint256 _maxPerUserDeposit,
         uint256 _minDepositAmount,
         Combo[] calldata _combos
-    ) external initializer {
+    ) external override initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         __Ownable_init();
         __Pausable_init();
@@ -120,6 +124,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         stakingToken = IERC20(_stakingToken);
         stakingFee = _stakingFee;
 
+        stakingTokenPool = _stakingTokenPool;
         swapRouter = _swapRouter;
 
         totalDeposit = 0;
@@ -247,7 +252,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
 
 
         // Perform deduction
-        uint256 totalDeduct = userStake.amount;
+        uint256 totalDeduct = userReward + userStake.amount;
 
         totalReward -= userReward;
         totalDeposit -= userStake.amount;
@@ -337,7 +342,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         TransferHelper.safeTransferFrom(_tokenIn, msg.sender, address(this), _amountIn);
 
         // Approve the router to spend _tokenIn.
-        TransferHelper.safeApprove(_tokenIn, address(swapRouter), _amountIn);
+        TransferHelper.safeApprove(_tokenIn, swapRouter, _amountIn);
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
@@ -354,7 +359,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
             });
 
         // The call to `exactInputSingle` executes the swap.
-        amountOut = swapRouter.exactInputSingle(params);
+        amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
     }
 
     /**

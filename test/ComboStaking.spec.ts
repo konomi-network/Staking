@@ -38,7 +38,9 @@ describe("ComboStaking", function () {
     let tokenEth: Contract;
     let tokenLink: Contract;
 
+    let stakingTokenPoolContract: Contract;
     let swapRouterContract: Contract;
+
     let stakingContract: Contract;
     let stakingAaveContract: Contract;
 
@@ -58,7 +60,9 @@ describe("ComboStaking", function () {
         tokenEth = await deployContractWithDeployer(deployer, mockErc20ContractName, ['ETH', 'ETH'], isSilent);
         tokenLink = await deployContractWithDeployer(deployer, mockErc20ContractName, ['LINK', 'LINK'], isSilent);
 
+        stakingTokenPoolContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
         swapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
+        
         stakingContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
         stakingAaveContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
 
@@ -123,8 +127,9 @@ describe("ComboStaking", function () {
         );
 
         const tokenAddr = await token.getAddress();
+        const stakingTokenPoolAddr = await stakingTokenPoolContract.getAddress();
         const uniswapRouterAddr = await swapRouterContract.getAddress();
-        await toTestContract.initialize(tokenAddr, STAKING_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
+        await toTestContract.initialize(tokenAddr, STAKING_FEE, stakingTokenPoolAddr, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
     });
 
     describe('Deposited', () => {
