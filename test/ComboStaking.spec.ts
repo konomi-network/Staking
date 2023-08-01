@@ -62,13 +62,13 @@ describe("ComboStaking", function () {
 
         stakingTokenPoolContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
         swapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
-        
+
         stakingContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
         stakingAaveContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
 
         const DEFAULT_COMBOS = [{
                 creditRating: 0,
-                tokens: [{
+                entries: [{
                         weight: 30,
                         staking: {
                             id: 0,
@@ -90,7 +90,7 @@ describe("ComboStaking", function () {
             },
             {
                 creditRating: 1,
-                tokens: [{
+                entries: [{
                         weight: 60,
                         staking: {
                             id: 10,

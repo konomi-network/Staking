@@ -24,7 +24,7 @@ interface IComboStaking {
         uint256 stakedTime;
     }
 
-    struct ComboStakingToken {
+    struct ComboEntry {
         // Staking Token
         StakingToken staking;
         // Contract weight, range 0-100
@@ -45,7 +45,7 @@ interface IComboStaking {
     }
 
     struct Combo {
-        ComboStakingToken[] tokens;
+        ComboEntry[] entries;
         CreditRating creditRating;
     }
 

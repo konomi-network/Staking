@@ -95,10 +95,10 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         _;
     }
 
-    modifier _checkComboWeight(ComboStakingToken[] calldata _tokens) {
+    modifier _checkComboWeight(ComboEntry[] calldata _entries) {
         uint8 totalWeight = 0;
-        for (uint i = 0; i < _tokens.length; i++) {
-            totalWeight += _tokens[i].weight;
+        for (uint i = 0; i < _entries.length; i++) {
+            totalWeight += _entries[i].weight;
         }
 
         require(totalWeight == MAX_STAKING_TOKEN_WEIGHT, "STAKE-2");
@@ -144,7 +144,7 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
         }
     }
 
-    function _newCombo(Combo calldata _combo) internal _checkComboWeight(_combo.tokens) {
+    function _newCombo(Combo calldata _combo) internal _checkComboWeight(_combo.entries) {
         combos.push(_combo);
     }
 
@@ -218,8 +218,8 @@ contract ComboStaking is IComboStaking, Initializable, AccessControlUpgradeable,
 
         // Swapping the specified token as a Stacking Token combination
         Combo storage combo = combos[_comboId];
-        for (uint i = 0; i < combo.tokens.length; i++) {
-            ComboStakingToken storage token = combo.tokens[i];
+        for (uint i = 0; i < combo.entries.length; i++) {
+            ComboEntry storage token = combo.entries[i];
 
             uint256 tokenAmountIn = _calculateTokenAmount(_amountIn, token.weight);
             uint256 tokenAmountOut = _swapExactInputSingle(address(stakingToken), tokenAmountIn, token.staking.token);
