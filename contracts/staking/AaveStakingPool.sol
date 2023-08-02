@@ -17,11 +17,7 @@ contract AaveStakingPool is StakingPool {
     IPool public aavePool;
     IAToken public aToken;
 
-    constructor(
-        address _aavePool,
-        address _aToken,
-        address _stakingToken
-    ) StakingPool(_stakingToken) {
+    constructor(address _aavePool, address _aToken, address _stakingToken) StakingPool(_stakingToken) {
         aavePool = IPool(_aavePool);
         aToken = IAToken(_aToken);
         aToken.approve(_aavePool, type(uint256).max);
@@ -40,18 +36,18 @@ contract AaveStakingPool is StakingPool {
         return MathUtils.calculateCompoundedInterest(data.currentLiquidityRate, data.lastUpdateTimestamp, currentTimestamp) / 1e23;
     }
 
-    function _depositStakingToken(uint256 amount) override internal virtual {
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+    function _depositStakingToken(address onBehalfOf, uint256 amount) override internal virtual {
+        stakingToken.safeTransferFrom(onBehalfOf, address(this), amount);
 
         // Auto deposit user staking to AAVE
         stakingToken.approve(address(aavePool), amount);
         aavePool.supply(address(stakingToken), amount, address(this), 0);
     }
 
-    function _redeemStakingToken(uint256 amount) override internal virtual {
+    function _redeemStakingToken(address onBehalfOf, uint256 amount) override internal virtual {
         // Withdraw from AAVE first
         aavePool.withdraw(address(stakingToken), amount, address(this));
 
-        stakingToken.safeTransfer(msg.sender, amount);
+        stakingToken.safeTransfer(onBehalfOf, amount);
     }
 }

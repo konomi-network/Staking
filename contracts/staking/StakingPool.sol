@@ -3,12 +3,12 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./interfaces/IStakingPool.sol";
 
-abstract contract StakingPool is IStakingPool, Ownable, ReentrancyGuard {
+abstract contract StakingPool is IStakingPool, AccessControlUpgradeable, ReentrancyGuard {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
@@ -17,49 +17,45 @@ abstract contract StakingPool is IStakingPool, Ownable, ReentrancyGuard {
 
     // Who can invoke the pool method in this contract
     bytes32 public constant POOL_ROLE = keccak256("POOL");
-    // Who can invoke the submit method in this contract
-    bytes32 public constant UPDATER_ROLE = keccak256("UPDATER");
-
-    // The mapping that tracks the total amount staked of an address
-    mapping(address => uint256) public userTotalStake;
-
-    address public defaultAdmin;
-    address public masterStaking;
 
     // The total amount of supply for this contract
     uint256 public totalSupply;
 
-    constructor(address _stakingToken) Ownable() {
+    constructor(address _stakingToken) {
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
         stakingToken = IERC20(_stakingToken);
     }
 
-    function deposit(uint256 amount) external override nonReentrant {
+    function initialize(address _invoker) public initializer {
+        _setupRole(POOL_ROLE, _invoker);
+
+        __AccessControl_init_unchained();
+    }
+
+    function deposit(address onBehalfOf, uint256 amount) external override nonReentrant onlyRole(POOL_ROLE) {
         require(amount > 0, "STAKE-10");
 
         totalSupply += amount;
-        userTotalStake[msg.sender] += amount;
-        _depositStakingToken(amount);
 
-        emit Deposited(msg.sender, amount);
+        _depositStakingToken(onBehalfOf, amount);
+
+        emit Deposited(onBehalfOf, amount);
     }
 
-    function _depositStakingToken(uint256 amount) internal virtual {
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
-    }
-
-    function redeem(uint256 amount) external override nonReentrant {
+    function redeem(address onBehalfOf, uint256 amount) external override nonReentrant onlyRole(POOL_ROLE) {
         require(amount > 0, "STAKE-10");
 
         totalSupply -= amount;
-        userTotalStake[msg.sender] -= amount;
-        _redeemStakingToken(amount);
 
-        emit Redeemed(msg.sender, amount);
+        _redeemStakingToken(onBehalfOf, amount);
+
+        emit Redeemed(onBehalfOf, amount);
     }
 
-    function _redeemStakingToken(uint256 amount) internal virtual {
-        stakingToken.safeTransfer(msg.sender, amount);
-    }
+    function _depositStakingToken(address onBehalfOf, uint256 amount) internal virtual;
+
+    function _redeemStakingToken(address onBehalfOf, uint256 amount) internal virtual;
 
     /**
      * @dev get current time

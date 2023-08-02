@@ -23,7 +23,7 @@ contract MockAavePool {
         uint16 referralCode
     ) public virtual {
         referralCode;
-        console.log(">>> MockAavePool supply:", asset, onBehalfOf, amount);
+        console.log(">>> MockAavePool supply:", onBehalfOf, amount);
 
         IERC20(asset).transferFrom(msg.sender, address(this), amount);
 
@@ -45,7 +45,7 @@ contract MockAavePool {
 
     function getReserveData(address asset) external view returns (DataTypes.ReserveData memory data) {
         data.aTokenAddress = asset;
-        data.currentLiquidityRate = 46393529817768722931310203;
-        data.lastUpdateTimestamp = 10;
+        data.currentLiquidityRate = 16393529817768722931310203;
+        data.lastUpdateTimestamp = 1;
     }
 }

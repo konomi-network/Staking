@@ -158,6 +158,7 @@ describe("ComboStaking", function () {
         );
 
         await toTestContract.initialize(tokenAddr, STAKING_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
+        await AStakingPoolContract.initialize(await toTestContract.getAddress());
     });
 
     describe('Deposited', () => {
@@ -201,13 +202,23 @@ describe("ComboStaking", function () {
         it('averageAPY work', async() => {
             const senderAddr = await sender.getAddress();
             const testContractAddr = await toTestContract.getAddress();
+            console.log(">>> sender address:", senderAddr);
         
             await transferToken(token, testContractAddr);
+            const AStakingPoolContractAddr = await AStakingPoolContract.getAddress();
+            await transferToken(tokenEth, AStakingPoolContractAddr);
 
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
+            expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
+
             const connect = toTestContract.connect(sender);
-            await expect(connect.deposit(0, 1000)).to.emit(toTestContract, 'Deposited');
-            await advanceBlocks(10);
+
+            const amount = 500;
+            await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
+            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
+            expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount - calcFee(amount)));
+
+            await advanceBlocks(100);
             expect(await connect.averageAPY(0)).to.eq(5000);
         });
     })

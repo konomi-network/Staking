@@ -231,17 +231,16 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
 
             uint256 tokenAmountIn = _calculateTokenAmount(amountIn, token.weight);
             uint256 tokenAmountOut = _swapExactInputSingle(address(stakingToken), tokenAmountIn, token.staking.token);
-            uint256 stakedTime = currentTime();
 
             // console.log(">>> deposit: ", token.staking.token, tokenAmountOut, tokenAmountIn);
 
-            IStakingPool(token.staking.stakingContract).deposit(tokenAmountOut);
+            IStakingPool(token.staking.stakingContract).deposit(msg.sender, tokenAmountOut);
 
             // Add new combo to userStakeDetail storage
             userStakes.push(UserStake({
                 stakingId: token.staking.id,
                 amount: tokenAmountOut,
-                stakedTime: stakedTime
+                stakedTime: currentTime()
             }));
         }
 
