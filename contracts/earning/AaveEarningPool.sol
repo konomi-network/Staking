@@ -7,6 +7,8 @@ import { IPool } from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import { IAToken } from "@aave/core-v3/contracts/interfaces/IAToken.sol";
 import { DataTypes } from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 import { MathUtils } from "@aave/core-v3/contracts/protocol/libraries/math/MathUtils.sol";
+import { WadRayMath } from "@aave/core-v3/contracts/protocol/libraries/math/WadRayMath.sol";
+
 
 import "./EarningPool.sol";
 
@@ -16,6 +18,9 @@ contract AaveEarningPool is EarningPool {
 
     IPool public aavePool;
     IAToken public aToken;
+
+    // WadRayMath.RAY returns 1e27, which is rounded to tens of thousands, i.e. 500 represents 5%
+    uint256 public constant RESERVED_PERCENT = 1e23;
 
     constructor(address _aavePool, address _aToken, address _earningToken) EarningPool(_earningToken) {
         aavePool = IPool(_aavePool);
@@ -33,7 +38,11 @@ contract AaveEarningPool is EarningPool {
 
     function _apy(uint256 currentTimestamp) internal view returns (uint256) {
         DataTypes.ReserveData memory data = aavePool.getReserveData(address(earningToken));
-        return MathUtils.calculateCompoundedInterest(data.currentLiquidityRate, data.lastUpdateTimestamp, currentTimestamp) / 1e23;
+        // MathUtils.calculateCompoundedInterest did not handle currentTimestamp less than lastUpdateTimestamp.
+        if (currentTimestamp <= data.lastUpdateTimestamp) {
+            return WadRayMath.RAY / RESERVED_PERCENT;
+        }
+        return MathUtils.calculateCompoundedInterest(data.currentLiquidityRate, data.lastUpdateTimestamp, currentTimestamp) / RESERVED_PERCENT;
     }
 
     function _depositStakingToken(address onBehalfOf, uint256 amount) override internal virtual {
