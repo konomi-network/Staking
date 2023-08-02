@@ -6,14 +6,14 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "./interfaces/IStakingPool.sol";
+import "./interfaces/IEarningPool.sol";
 
-abstract contract StakingPool is IStakingPool, AccessControlUpgradeable, ReentrancyGuard {
+abstract contract EarningPool is IEarningPool, AccessControlUpgradeable, ReentrancyGuard {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
-    // The underlying staking token
-    IERC20 public stakingToken;
+    // The underlying earning token
+    IERC20 public earningToken;
 
     // Who can invoke the pool method in this contract
     bytes32 public constant POOL_ROLE = keccak256("POOL");
@@ -21,10 +21,10 @@ abstract contract StakingPool is IStakingPool, AccessControlUpgradeable, Reentra
     // The total amount of supply for this contract
     uint256 public totalSupply;
 
-    constructor(address _stakingToken) {
+    constructor(address _earningToken) {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
-        stakingToken = IERC20(_stakingToken);
+        earningToken = IERC20(_earningToken);
     }
 
     function initialize(address _invoker) public initializer {

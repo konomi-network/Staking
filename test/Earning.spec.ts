@@ -38,12 +38,12 @@ const calcFee = (amount: number) => {
     return amount * STAKING_FEE / 10000;
 }
 
-describe("ComboStaking", function () {
+describe("Earning", function () {
     let token: Contract;
     let tokenEth: Contract;
     let tokenLink: Contract;
 
-    let AStakingPoolContract: Contract;
+    let AEarningPoolContract: Contract;
     let APoolContract: Contract;
     let ATokenContract: Contract;
 
@@ -95,26 +95,26 @@ describe("ComboStaking", function () {
         await poolConnect.addAToken(tokenAddr, ATokenAddr);
         await poolConnect.addAToken(tokenEthAddr, ATokenAddr);
 
-        AStakingPoolContract = await deployContractWithDeployer(deployer, 'AaveStakingPool', [APoolAddr, ATokenAddr, tokenEthAddr], isSilent);
+        AEarningPoolContract = await deployContractWithDeployer(deployer, 'AaveEarningPool', [APoolAddr, ATokenAddr, tokenEthAddr], isSilent);
 
         const DEFAULT_COMBOS = [{
                 creditRating: 0,
                 entries: [{
                         weight: 30,
-                        staking: {
+                        earning: {
                             id: 0,
                             name: 'ETH',
                             token: await tokenEth.getAddress(),
-                            stakingContract: await AStakingPoolContract.getAddress(),
+                            earningContract: await AEarningPoolContract.getAddress(),
                         }
                     },
                     {
                         weight: 70,
-                        staking: {
+                        earning: {
                             id: 1,
                             name: 'LINK',
                             token: await tokenLink.getAddress(),
-                            stakingContract: await AStakingPoolContract.getAddress(),
+                            earningContract: await AEarningPoolContract.getAddress(),
                         }
                     }
                 ]
@@ -123,20 +123,20 @@ describe("ComboStaking", function () {
                 creditRating: 1,
                 entries: [{
                         weight: 60,
-                        staking: {
+                        earning: {
                             id: 10,
                             name: 'sETH',
                             token: await tokenEth.getAddress(),
-                            stakingContract: await AStakingPoolContract.getAddress(),
+                            earningContract: await AEarningPoolContract.getAddress(),
                         }
                     },
                     {
                         weight: 40,
-                        staking: {
+                        earning: {
                             id: 20,
                             name: 'sLINK',
                             token: await tokenLink.getAddress(),
-                            stakingContract: await AStakingPoolContract.getAddress(),
+                            earningContract: await AEarningPoolContract.getAddress(),
                         }
                     }
                 ]
@@ -152,19 +152,19 @@ describe("ComboStaking", function () {
         */
         toTestContract = await deployContractWithDeployer(
             deployer,
-            'ComboStaking',
+            'Earning',
             [],
             isSilent,
         );
 
         await toTestContract.initialize(tokenAddr, STAKING_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
-        await AStakingPoolContract.initialize(await toTestContract.getAddress());
+        await AEarningPoolContract.initialize(await toTestContract.getAddress());
     });
 
     describe('Deposited', () => {
         it('deposit but not enough', async () => {
             const tx = toTestContract.connect(sender).deposit(0, MIN_DEPOSIT_AMOUNT - 1n);
-            await expect(tx).to.be.revertedWith('STAKE-6');
+            await expect(tx).to.be.revertedWith('EARN-6');
         });
 
         it('deposit with 1000 and 2000', async () => {
@@ -173,27 +173,27 @@ describe("ComboStaking", function () {
 
             await transferToken(token, testContractAddr);
 
-            const AStakingPoolContractAddr = await AStakingPoolContract.getAddress();
-            await transferToken(tokenEth, AStakingPoolContractAddr);
+            const AEarningPoolContractAddr = await AEarningPoolContract.getAddress();
+            await transferToken(tokenEth, AEarningPoolContractAddr);
 
             const connect = toTestContract.connect(sender);
             await expect(connect.deposit(0, 1000)).to.emit(toTestContract, 'Deposited');
             await expect(connect.deposit(1, 2000)).to.emit(toTestContract, 'Deposited');
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - 3000n);
 
-            const userDetail = await connect.listUserStakeDetails(await sender.getAddress());
+            const userDetail = await connect.listUserEarnDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(4);
 
-            expect(userDetail[0].stakingId).to.eq(0);
+            expect(userDetail[0].earningId).to.eq(0);
             expect(userDetail[0].amount).to.eq(300 - calcFee(300));
 
-            expect(userDetail[1].stakingId).to.eq(1);
+            expect(userDetail[1].earningId).to.eq(1);
             expect(userDetail[1].amount).to.eq(700 - calcFee(700));
 
-            expect(userDetail[2].stakingId).to.eq(10);
+            expect(userDetail[2].earningId).to.eq(10);
             expect(userDetail[2].amount).to.eq(1200 - calcFee(1200));
 
-            expect(userDetail[3].stakingId).to.eq(20);
+            expect(userDetail[3].earningId).to.eq(20);
             expect(userDetail[3].amount).to.eq(800 - calcFee(800));
         });
     });
@@ -205,8 +205,8 @@ describe("ComboStaking", function () {
             console.log(">>> sender address:", senderAddr);
         
             await transferToken(token, testContractAddr);
-            const AStakingPoolContractAddr = await AStakingPoolContract.getAddress();
-            await transferToken(tokenEth, AStakingPoolContractAddr);
+            const AEarningPoolContractAddr = await AEarningPoolContract.getAddress();
+            await transferToken(tokenEth, AEarningPoolContractAddr);
 
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
             expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);

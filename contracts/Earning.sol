@@ -12,39 +12,41 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 
-import "./interfaces/IComboStaking.sol";
-import "./staking/interfaces/IStakingPool.sol";
+import "./interfaces/IEarning.sol";
+import "./earning/interfaces/IEarningPool.sol";
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
 /**
  * 7Blocks supports multiple tokens, such as ETH, LINK, UNI and etc.
- * 7Blocks will package the staking options into several different Combos. 
+ * 7Blocks will package the earning options into several different Combos. 
  * 
  * For example:
- * Combo-AAA: 30% ETH staking + 70% LINK staking
- * Combo-C: 60% Doge staking + 40% Pepe staking
+ * Combo-AAA: 30% ETH earning + 70% LINK earning
+ * Combo-C: 60% Doge earning + 40% Pepe earning
  * 
- * User can choose to stake to these different combos.
+ * User can choose to earn to these different combos.
  */
-contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, PausableUpgradeable, UUPSUpgradeable {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
-    // The underlying staking token
-    IERC20 public stakingToken;
+    // The underlying earning token
+    IERC20 public earningToken;
 
     // The swapRouter of uniswap-v3
     address public swapRouter;
 
-    // The combos of the staking options.
+    // The combos of the earning options.
     Combo[] public combos;
 
-    // The mapping that tracks all the users staking metadata
-    mapping(address => UserStake[]) public userStakeDetail;
-    // The mapping that tracks the total amount staked of an address
-    mapping(address => uint256) public userTotalStake;
+    // The mapping that tracks all the users earning metadata
+    mapping(address => UserEarn[]) public userEarnDetail;
+    // The mapping that tracks the total amount earned of an address
+    mapping(address => uint256) public userTotalEarn;
+    // The mapping that tracks the id of earningToken
+    mapping(uint16 => EarningToken) public earningTokens;
 
     // The total amount of token deposited into the contract
     uint256 public totalDeposit;
@@ -58,18 +60,18 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
     // The maximum deposit amount in total
     uint256 public maxDeposit;
 
-    // The maximum deposit amount a user can stake
+    // The maximum deposit amount a user can earn
     uint256 public maxPerUserDeposit;
 
     // The minimal deposit amount
     uint256 public minDepositAmount;
 
 
-    // Whether the staking has ended
-    bool public stakingEnded;
+    // Whether the earning has ended
+    bool public earningEnded;
 
-    // Staking platform fee, default: 0.1%, when collect during deposit
-    uint24 public stakingFee = 1000;
+    // Earning platform fee, default: 0.1%, when collect during deposit
+    uint24 public earningFee = 1000;
 
     // The fee unit
     uint24 public constant ONE_FEER = 10000;
@@ -80,34 +82,39 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
     // For upgrading contract versions
     uint16 public constant VERSION = 1;
 
-    // Maximum number of staking per user
-    uint16 private constant MAX_STAKING_PER_USER = 1024;
+    // Maximum number of earning per user
+    uint16 private constant MAX_EARNING_PER_USER = 1024;
 
-    // Maximum weight of staking token
-    uint8 private constant MAX_STAKING_TOKEN_WEIGHT = 100;
+    // Maximum weight of earning token
+    uint8 private constant MAX_EARNING_TOKEN_WEIGHT = 100;
 
     /**
-     * Modifier to check staking has not ended
+     * Modifier to check earning has not ended
      * TODO: deprecate this, use a bool!
      */
     modifier notEnded() {
-        require(!stakingEnded, "STAKE-1");
+        require(!earningEnded, "EARN-1");
         _;
     }
 
-    modifier _checkComboWeight(ComboEntry[] calldata entries) {
+    modifier _checkCombo(ComboEntry[] calldata entries) {
         uint8 totalWeight = 0;
         for (uint i = 0; i < entries.length; i++) {
-            totalWeight += entries[i].weight;
+            ComboEntry calldata entry = entries[i];
+            
+            EarningToken storage token = earningTokens[entry.earning.id];
+            require(token.earningContract == address(0), "EARN-12");
+
+            totalWeight += entry.weight;
         }
 
-        require(totalWeight == MAX_STAKING_TOKEN_WEIGHT, "STAKE-2");
+        require(totalWeight == MAX_EARNING_TOKEN_WEIGHT, "EARN-2");
         _;
     }
 
     function initialize(
-        address _stakingToken,
-        uint24 _stakingFee,
+        address _earningToken,
+        uint24 _earningFee,
         address _swapRouter,
         uint256 _maxDeposit,
         uint256 _maxPerUserDeposit,
@@ -120,8 +127,8 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
 
         _combosInit(_combos);
 
-        stakingToken = IERC20(_stakingToken);
-        stakingFee = _stakingFee;
+        earningToken = IERC20(_earningToken);
+        earningFee = _earningFee;
 
         swapRouter = _swapRouter;
 
@@ -133,7 +140,7 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
         maxPerUserDeposit = _maxPerUserDeposit;
         minDepositAmount = _minDepositAmount;
 
-        stakingEnded = false;
+        earningEnded = false;
     }
 
     function _combosInit(Combo[] calldata _combos) internal {
@@ -142,8 +149,24 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
         }
     }
 
-    function _newCombo(Combo calldata combo) internal _checkComboWeight(combo.entries) {
+    function _newCombo(Combo calldata combo) internal _checkCombo(combo.entries) {
         combos.push(combo);
+
+        for (uint i = 0; i < combo.entries.length; i++) {
+            EarningToken calldata token = combo.entries[i].earning;
+            earningTokens[token.id] = token;
+        }
+    }
+
+    function _removeCombo(uint8 comboId) internal returns (Combo memory oldCombo) {
+        oldCombo = combos[comboId];
+
+        combos[comboId] = combos[combos.length - 1];
+        combos.pop();
+
+        for (uint i = 0; i < oldCombo.entries.length; i++) {
+            delete earningTokens[oldCombo.entries[i].earning.id];
+        }
     }
 
     /**
@@ -167,12 +190,12 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
     }
 
     /**
-     * Get the staking amount that can be redeem
+     * Get the earning amount that can be redeem
      * @param who The address to check
      */
-    function listUserStakeDetails(address who) external view override returns (UserStake[] memory) {
-        require(who == _msgSender() || owner() == _msgSender(), "STAKE-3");
-        return userStakeDetail[who];
+    function listUserEarnDetails(address who) external view override returns (UserEarn[] memory) {
+        require(who == _msgSender() || owner() == _msgSender(), "EARN-3");
+        return userEarnDetail[who];
     }
 
     /**
@@ -181,46 +204,46 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
      * @return currentAPY
      */
     function averageAPY(uint8 comboId) external view override returns (uint256 currentAPY) {
-        require (combos.length > comboId, "STAKE-4");
+        require (combos.length > comboId, "EARN-4");
 
         uint256 totalApy = 0;
         Combo memory combo = combos[comboId];
         for (uint i = 0; i < combo.entries.length; i++) {
             ComboEntry memory token = combo.entries[i];
-            uint256 tokenApy = IStakingPool(token.staking.stakingContract).apy();
+            uint256 tokenApy = IEarningPool(token.earning.earningContract).apy();
             totalApy += _calculateTokenAmount(tokenApy, token.weight);
-            // console.log(">>> tokenApy:", token.staking.name, tokenApy, currentTime());
+            // console.log(">>> tokenApy:", token.earning.name, tokenApy, currentTime());
         }
         currentAPY = totalApy / combo.entries.length;
     }
 
     function deposit(uint8 comboId, uint256 amountIn) external override notEnded whenNotPaused {
-        require (combos.length > comboId, "STAKE-4");
+        require (combos.length > comboId, "EARN-4");
 
         if (totalDeposit + amountIn >= maxDeposit) {
             // The max deposit will be reached, cap the amount
             amountIn = amountIn.min(maxDeposit - totalDeposit);
             // _amount == 0 means max deposit is reached
-            require(amountIn != 0, "STAKE-5");
+            require(amountIn != 0, "EARN-5");
         } else {
-            require(amountIn >= minDepositAmount, "STAKE-6");
+            require(amountIn >= minDepositAmount, "EARN-6");
         }
 
-        // Update user total stake amount
-        uint256 userStake = userTotalStake[msg.sender] + amountIn;
-        require(userStake <= maxPerUserDeposit, "STAKE-7");
-        userTotalStake[msg.sender] = userStake;
+        // Update user total earn amount
+        uint256 userEarn = userTotalEarn[msg.sender] + amountIn;
+        require(userEarn <= maxPerUserDeposit, "EARN-7");
+        userTotalEarn[msg.sender] = userEarn;
 
-        UserStake[] storage userStakes = userStakeDetail[msg.sender];
+        UserEarn[] storage userEarns = userEarnDetail[msg.sender];
 
-        // Update user staking details
-        require(userStakes.length < MAX_STAKING_PER_USER, "STAKE-8");
+        // Update user earning details
+        require(userEarns.length < MAX_EARNING_PER_USER, "EARN-8");
 
         // Collect platform fees
-        uint256 amountFee = _collectStakingFee(amountIn);
+        uint256 amountFee = _collectEarningFee(amountIn);
         amountIn -= amountFee;
 
-        if (userStakes.length == 0) {
+        if (userEarns.length == 0) {
             totalParticipants += 1;
         }
 
@@ -230,17 +253,17 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
             ComboEntry storage token = combo.entries[i];
 
             uint256 tokenAmountIn = _calculateTokenAmount(amountIn, token.weight);
-            uint256 tokenAmountOut = _swapExactInputSingle(address(stakingToken), tokenAmountIn, token.staking.token);
+            uint256 tokenAmountOut = _swapExactInputSingle(address(earningToken), tokenAmountIn, token.earning.token);
 
-            // console.log(">>> deposit: ", token.staking.token, tokenAmountOut, tokenAmountIn);
+            // console.log(">>> deposit: ", token.earning.token, tokenAmountOut, tokenAmountIn);
 
-            IStakingPool(token.staking.stakingContract).deposit(msg.sender, tokenAmountOut);
+            IEarningPool(token.earning.earningContract).deposit(msg.sender, tokenAmountOut);
 
-            // Add new combo to userStakeDetail storage
-            userStakes.push(UserStake({
-                stakingId: token.staking.id,
+            // Add new combo to userEarnDetail storage
+            userEarns.push(UserEarn({
+                earningId: token.earning.id,
                 amount: tokenAmountOut,
-                stakedTime: currentTime()
+                earnedTime: currentTime()
             }));
         }
 
@@ -250,32 +273,36 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
         emit Deposited(msg.sender, comboId, amountIn, amountFee);
     }
 
-    function redeem(uint16 stakingId) external override notEnded whenNotPaused {
-        UserStake[] storage userStakes = userStakeDetail[msg.sender];
-        require(userStakes.length > 0, "STAKE-9");
-        require(userStakes.length > stakingId, "STAKE-4");
+    function redeem(uint16 earningId) external override notEnded whenNotPaused {
+        UserEarn[] storage userEarns = userEarnDetail[msg.sender];
+        require(userEarns.length > 0, "EARN-9");
+        require(userEarns.length > earningId, "EARN-4");
 
-        UserStake memory userStake = userStakes[stakingId];
+        EarningToken storage token = earningTokens[earningId];
+        require(token.earningContract != address(0), "EARN-11");
+
+        UserEarn memory userEarn = userEarns[earningId];
 
         // Get the user reward
         uint256 userReward = 0;
         // TODO: get averageAPY and calculateReward
+        IEarningPool(token.earningContract).redeem(msg.sender, userEarn.amount);
 
 
         // Perform deduction
-        uint256 totalDeduct = userReward + userStake.amount;
+        uint256 totalDeduct = userReward + userEarn.amount;
 
         totalReward -= userReward;
-        totalDeposit -= userStake.amount;
+        totalDeposit -= userEarn.amount;
 
-        userTotalStake[msg.sender] -= userStake.amount;
+        userTotalEarn[msg.sender] -= userEarn.amount;
 
-        _deleteUserStake(msg.sender, stakingId);
+        _deleteUserEarn(msg.sender, earningId);
 
-        emit Redeemed(msg.sender, stakingId, userStake.amount, userReward);
+        emit Redeemed(msg.sender, earningId, userEarn.amount, userReward);
 
         // Transfer
-        stakingToken.transfer(msg.sender, totalDeduct);
+        earningToken.transfer(msg.sender, totalDeduct);
     }
 
     /**
@@ -286,52 +313,52 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
     }
 
     /**
-     * @dev Delete user stake by account address and stakingId
+     * @dev Delete user earn by account address and earningId
      * @param who account address
-     * @param stakingId The id of staking
+     * @param earningId The id of earning
      */
-    function _deleteUserStake(address who, uint16 stakingId) internal {
-        UserStake[] storage userStakes = userStakeDetail[who];
-        if (userStakes.length == 1) {
-            delete userStakeDetail[who];
-            delete userTotalStake[who];
+    function _deleteUserEarn(address who, uint16 earningId) internal {
+        UserEarn[] storage userEarns = userEarnDetail[who];
+        if (userEarns.length == 1) {
+            delete userEarnDetail[who];
+            delete userTotalEarn[who];
             if (totalParticipants > 0) {
                 totalParticipants -= 1;
             }
         } else {
-            userStakeDetail[who][stakingId] = userStakeDetail[who][userStakes.length - 1];
-            userStakeDetail[who].pop();
+            userEarnDetail[who][earningId] = userEarnDetail[who][userEarns.length - 1];
+            userEarnDetail[who].pop();
         }
     }
 
     /**
-     * Collect staking fee
+     * Collect earning fee
      * @param amountIn the amound of token
      * @return amountFee
      */
-    function _collectStakingFee(uint256 amountIn) internal returns (uint256 amountFee) {
-        amountFee = _calculatStakingFee(amountIn);
-        stakingToken.safeTransferFrom(msg.sender, address(this), amountFee);
-        emit ExactStakingFee(msg.sender, amountIn, amountFee);
+    function _collectEarningFee(uint256 amountIn) internal returns (uint256 amountFee) {
+        amountFee = _calculatEarningFee(amountIn);
+        earningToken.safeTransferFrom(msg.sender, address(this), amountFee);
+        emit ExactEarningFee(msg.sender, amountIn, amountFee);
     }
 
     /**
-     * @dev Calculate staking fee
+     * @dev Calculate earning fee
      * @param amountIn the amound of tokenIn
      * @return amountFee
      */
-    function _calculatStakingFee(uint256 amountIn) internal view returns (uint256) {
-        return amountIn * stakingFee / ONE_FEER;
+    function _calculatEarningFee(uint256 amountIn) internal view returns (uint256) {
+        return amountIn * earningFee / ONE_FEER;
     }
 
     /**
      * @dev Convert the corresponding quantity based on weight and price
      * @param amount the amound of tokenIn
-     * @param stakingTokenWeight the weight of staking token
-     * @return _stakingTokenAmount - the amount of staking token
+     * @param earningTokenWeight the weight of earning token
+     * @return _earningTokenAmount - the amount of earning token
      */
-    function _calculateTokenAmount(uint256 amount, uint8 stakingTokenWeight) internal pure returns (uint256) {
-        return amount * stakingTokenWeight / MAX_STAKING_TOKEN_WEIGHT;
+    function _calculateTokenAmount(uint256 amount, uint8 earningTokenWeight) internal pure returns (uint256) {
+        return amount * earningTokenWeight / MAX_EARNING_TOKEN_WEIGHT;
     }
 
     /**
@@ -380,7 +407,7 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
      * @param _amount The amount of reward
      */
     function supplyReward(uint256 _amount) external onlyOwner {
-        stakingToken.transferFrom(msg.sender, address(this), _amount);
+        earningToken.transferFrom(msg.sender, address(this), _amount);
         totalReward += _amount;
 
         emit RewardPumped(msg.sender, _amount);
@@ -388,7 +415,7 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
 
     /**
      * @dev support append and remove combo to combs? just support handle combo list
-     * @param combo the stakingToken information of combo
+     * @param combo the earningToken information of combo
      */
     function addCombo(Combo calldata combo) external onlyOwner {
         _newCombo(combo);
@@ -401,18 +428,15 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
      * @param comboId the index of combo
      */
     function removeCombo(uint8 comboId) external onlyOwner {
-        Combo memory oldCombo = combos[comboId];
-
-        combos[comboId] = combos[combos.length - 1];
-        combos.pop();
+        Combo memory oldCombo = _removeCombo(comboId);
 
         emit RemoveCombo(msg.sender, comboId, oldCombo);
     }
 
     /**
-     * @dev end staking
+     * @dev end earning
      */
-    function endStaking() external onlyOwner {
-        stakingEnded = true;
+    function endEarning() external onlyOwner {
+        earningEnded = true;
     }
 }

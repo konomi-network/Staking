@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-interface IStakingPool {
+interface IEarningPool {
     /// Events
     event Deposited(address who, uint256 amount);
     event Redeemed(address who, uint256 amount);
