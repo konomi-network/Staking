@@ -53,10 +53,22 @@ describe("ComboStaking", function () {
 
     let deployer: Signer;
     let sender: Signer;
-    let updater: Signer;
+    let invoker: Signer;
+
+    const transferToken = async(token: Contract, contractAddr: string) => {
+        const senderAddr = await sender.getAddress();
+    
+        await expect(await token.connect(deployer).transfer(senderAddr, TEST_AMOUNT)).to.emit(token, 'Transfer');
+        await expect(token.connect(sender).increaseAllowance(contractAddr, TEST_AMOUNT)).to.emit(
+            token,
+            'Approval',
+        );
+        expect(await token.allowance(senderAddr, contractAddr)).to.eq(TEST_AMOUNT);
+        expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
+    }
 
     beforeEach(async () => {
-        [deployer, sender, updater] = await ethers.getSigners();
+        [deployer, sender, invoker] = await ethers.getSigners();
 
         const isSilent = true;
         const mockErc20ContractName = 'MockERC20';
@@ -67,6 +79,7 @@ describe("ComboStaking", function () {
         swapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
 
         const tokenAddr = await token.getAddress();
+        const tokenEthAddr = await tokenEth.getAddress();
         const uniswapRouterAddr = await swapRouterContract.getAddress();
 
         APoolContract = await deployContractWithDeployer(deployer, 'MockAavePool', [], isSilent);
@@ -78,9 +91,11 @@ describe("ComboStaking", function () {
         const ATokenAddr = await AToken.getAddress();
         const APoolAddr = await APoolContract.getAddress();
 
-        await pool.connect(deployer).addAToken(tokenAddr, ATokenAddr);
+        const poolConnect = pool.connect(deployer);
+        await poolConnect.addAToken(tokenAddr, ATokenAddr);
+        await poolConnect.addAToken(tokenEthAddr, ATokenAddr);
 
-        AStakingPoolContract = await deployContractWithDeployer(deployer, 'AaveStakingPool', [APoolAddr, ATokenAddr, tokenAddr], isSilent);
+        AStakingPoolContract = await deployContractWithDeployer(deployer, 'AaveStakingPool', [APoolAddr, ATokenAddr, tokenEthAddr], isSilent);
 
         const DEFAULT_COMBOS = [{
                 creditRating: 0,
@@ -143,21 +158,10 @@ describe("ComboStaking", function () {
         );
 
         await toTestContract.initialize(tokenAddr, STAKING_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
-        await toTestContract.setStakingTokenPool(await AStakingPoolContract.getAddress());
     });
 
     describe('Deposited', () => {
         it('deposit but not enough', async () => {
-            const senderAddr = await sender.getAddress();
-            const testContractAddr = await toTestContract.getAddress();
-            const tokenAddr = await token.getAddress();
-
-            await expect(await token.connect(deployer).transfer(senderAddr, TEST_AMOUNT)).to.emit(token, 'Transfer');
-            await expect(token.connect(sender).increaseAllowance(testContractAddr, TEST_AMOUNT)).to.emit(
-                token,
-                'Approval',
-            );
-
             const tx = toTestContract.connect(sender).deposit(0, MIN_DEPOSIT_AMOUNT - 1n);
             await expect(tx).to.be.revertedWith('STAKE-6');
         });
@@ -165,17 +169,16 @@ describe("ComboStaking", function () {
         it('deposit with 1000 and 2000', async () => {
             const senderAddr = await sender.getAddress();
             const testContractAddr = await toTestContract.getAddress();
-            const tokenAddr = await token.getAddress();
 
-            await expect(await token.connect(deployer).transfer(senderAddr, TEST_AMOUNT)).to.emit(token, 'Transfer');
-            await expect(token.connect(sender).increaseAllowance(testContractAddr, TEST_AMOUNT)).to.emit(
-                token,
-                'Approval',
-            );
-            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
+            await transferToken(token, testContractAddr);
+
+            const AStakingPoolContractAddr = await AStakingPoolContract.getAddress();
+            await transferToken(tokenEth, AStakingPoolContractAddr);
+
             const connect = toTestContract.connect(sender);
             await expect(connect.deposit(0, 1000)).to.emit(toTestContract, 'Deposited');
             await expect(connect.deposit(1, 2000)).to.emit(toTestContract, 'Deposited');
+            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - 3000n);
 
             const userDetail = await connect.listUserStakeDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(4);
@@ -196,8 +199,16 @@ describe("ComboStaking", function () {
 
     describe('AverageAPY', () => {
         it('averageAPY work', async() => {
+            const senderAddr = await sender.getAddress();
+            const testContractAddr = await toTestContract.getAddress();
+        
+            await transferToken(token, testContractAddr);
+
+            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
+            const connect = toTestContract.connect(sender);
+            await expect(connect.deposit(0, 1000)).to.emit(toTestContract, 'Deposited');
             await advanceBlocks(10);
-            expect(await toTestContract.connect(deployer).averageAPY(0)).to.eq(5000);
+            expect(await connect.averageAPY(0)).to.eq(5000);
         });
     })
 });

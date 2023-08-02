@@ -35,9 +35,6 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
     // The underlying staking token
     IERC20 public stakingToken;
 
-    // The contract of staking token pool, that support AAVE and compound protocol etc.
-    address public stakingTokenPool;
-
     // The swapRouter of uniswap-v3
     address public swapRouter;
 
@@ -236,6 +233,10 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
             uint256 tokenAmountOut = _swapExactInputSingle(address(stakingToken), tokenAmountIn, token.staking.token);
             uint256 stakedTime = currentTime();
 
+            // console.log(">>> deposit: ", token.staking.token, tokenAmountOut, tokenAmountIn);
+
+            IStakingPool(token.staking.stakingContract).deposit(tokenAmountOut);
+
             // Add new combo to userStakeDetail storage
             userStakes.push(UserStake({
                 stakingId: token.staking.id,
@@ -407,10 +408,6 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
         combos.pop();
 
         emit RemoveCombo(msg.sender, comboId, oldCombo);
-    }
-
-    function setStakingTokenPool(address _stakingTokenPool) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        stakingTokenPool = _stakingTokenPool;
     }
 
     /**

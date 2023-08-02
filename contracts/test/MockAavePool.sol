@@ -6,6 +6,9 @@ import { DataTypes } from "@aave/core-v3/contracts/protocol/libraries/types/Data
 
 import "./MockAToken.sol";
 
+// Uncomment this line to use console.log
+import "hardhat/console.sol";
+
 contract MockAavePool {
     mapping(address => address) public assetToAToken;
 
@@ -20,6 +23,8 @@ contract MockAavePool {
         uint16 referralCode
     ) public virtual {
         referralCode;
+        console.log(">>> MockAavePool supply:", asset, onBehalfOf, amount);
+
         IERC20(asset).transferFrom(msg.sender, address(this), amount);
 
         MockAToken atoken = MockAToken(assetToAToken[asset]);
