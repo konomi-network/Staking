@@ -60,4 +60,11 @@ abstract contract StakingPool is IStakingPool, Ownable, ReentrancyGuard {
     function _redeemStakingToken(uint256 amount) internal virtual {
         stakingToken.safeTransfer(msg.sender, amount);
     }
+
+    /**
+     * @dev get current time
+     */
+    function currentTime() public view returns (uint256) {
+        return block.number;
+    }
 }

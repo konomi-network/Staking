@@ -28,12 +28,16 @@ contract AaveStakingPool is StakingPool {
     }
 
     function apy() external override view returns (uint256) {
-        DataTypes.ReserveData memory data = aavePool.getReserveData(address(stakingToken));
-        return MathUtils.calculateCompoundedInterest(data.currentLiquidityRate, data.lastUpdateTimestamp);
+        return _apy(currentTime());
     }
 
-    function reward(uint256 depositBlock) external override {
+    function reward(uint256 depositBlock) external override view returns (uint256) {
+        return _apy(depositBlock);
+    }
 
+    function _apy(uint256 currentTimestamp) internal view returns (uint256) {
+        DataTypes.ReserveData memory data = aavePool.getReserveData(address(stakingToken));
+        return MathUtils.calculateCompoundedInterest(data.currentLiquidityRate, data.lastUpdateTimestamp, currentTimestamp);
     }
 
     function _depositStakingToken(uint256 amount) override internal virtual {

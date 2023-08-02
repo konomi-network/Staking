@@ -52,3 +52,22 @@ export async function deployContractWithUpgradesDeployer(
     }
     return contract;
 }
+
+export async function deployContractWithProxyDeployer(
+    deployer: Signer,
+    contractName: string,
+    args: unknown[],
+    isSilent?: boolean,
+): Promise<Contract> {
+    if (!isSilent) {
+        console.log(`>>> deploy contract: ${contractName} with (${args.length}) args:`, ...args);
+    }
+
+    const contractFactory = await ethers.getContractFactory(contractName, deployer);
+    const contract = await upgrades.deployProxy(contractFactory, args);
+
+    if (!isSilent) {
+        console.log(`>> contract ${contractName} deployed with address ${await contract.getAddress()}`);
+    }
+    return contract;
+}

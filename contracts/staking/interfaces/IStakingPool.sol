@@ -10,5 +10,5 @@ interface IStakingPool {
     function apy() external returns (uint256);
     function deposit(uint256 amount) external;
     function redeem(uint256 amount) external;
-    function reward(uint256 depositBlock) external;
+    function reward(uint256 depositBlock) external returns (uint256);
 }
