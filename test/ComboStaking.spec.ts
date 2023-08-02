@@ -13,7 +13,8 @@ import {
     deployContractWithProxyDeployer
 } from './utils';
 import {
-    MockAToken__factory, MockAavePool__factory
+    MockAToken__factory,
+    MockAavePool__factory
 } from '../typechain-types/factories/contracts/test';
 
 const STAKING_FEE = 1000;
@@ -109,7 +110,7 @@ describe("ComboStaking", function () {
                         weight: 60,
                         staking: {
                             id: 10,
-                            name: 'ETH',
+                            name: 'sETH',
                             token: await tokenEth.getAddress(),
                             stakingContract: await AStakingPoolContract.getAddress(),
                         }
@@ -118,7 +119,7 @@ describe("ComboStaking", function () {
                         weight: 40,
                         staking: {
                             id: 20,
-                            name: 'LINK',
+                            name: 'sLINK',
                             token: await tokenLink.getAddress(),
                             stakingContract: await AStakingPoolContract.getAddress(),
                         }
@@ -192,4 +193,11 @@ describe("ComboStaking", function () {
             expect(userDetail[3].amount).to.eq(800 - calcFee(800));
         });
     });
+
+    describe('AverageAPY', () => {
+        it('averageAPY work', async() => {
+            await advanceBlocks(10);
+            expect(await toTestContract.connect(deployer).averageAPY(0)).to.eq(5000);
+        });
+    })
 });

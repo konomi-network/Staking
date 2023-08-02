@@ -7,7 +7,7 @@ interface IStakingPool {
     event Redeemed(address who, uint256 amount);
 
     /// Methods
-    function apy() external returns (uint256);
+    function apy() external view returns (uint256);
     function deposit(uint256 amount) external;
     function redeem(uint256 amount) external;
     function reward(uint256 depositBlock) external returns (uint256);

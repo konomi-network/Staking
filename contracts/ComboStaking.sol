@@ -13,6 +13,10 @@ import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 
 import "./interfaces/IComboStaking.sol";
+import "./staking/interfaces/IStakingPool.sol";
+
+// Uncomment this line to use console.log
+// import "hardhat/console.sol";
 
 /**
  * 7Blocks supports multiple tokens, such as ETH, LINK, UNI and etc.
@@ -177,10 +181,20 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
     /**
      * @dev callback another contract to calc APY.
      * @param comboId the index of combo
-     * @return APY
+     * @return currentAPY
      */
-    function averageAPY(uint8 comboId) external view override returns (uint256) {
+    function averageAPY(uint8 comboId) external view override returns (uint256 currentAPY) {
         require (combos.length > comboId, "STAKE-4");
+
+        uint256 totalApy = 0;
+        Combo memory combo = combos[comboId];
+        for (uint i = 0; i < combo.entries.length; i++) {
+            ComboEntry memory token = combo.entries[i];
+            uint256 tokenApy = IStakingPool(token.staking.stakingContract).apy();
+            totalApy += _calculateTokenAmount(tokenApy, token.weight);
+            // console.log(">>> tokenApy:", token.staking.name, tokenApy, currentTime());
+        }
+        currentAPY = totalApy / combo.entries.length;
     }
 
     function deposit(uint8 comboId, uint256 amountIn) external override notEnded whenNotPaused {
@@ -207,7 +221,7 @@ contract ComboStaking is IComboStaking, AccessControlUpgradeable, OwnableUpgrade
 
         // Collect platform fees
         uint256 amountFee = _collectStakingFee(amountIn);
-        amountIn = amountIn - amountFee;
+        amountIn -= amountFee;
 
         if (userStakes.length == 0) {
             totalParticipants += 1;
