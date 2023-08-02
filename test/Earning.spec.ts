@@ -179,7 +179,10 @@ describe("Earning", function () {
             const connect = toTestContract.connect(sender);
             await expect(connect.deposit(0, 1000)).to.emit(toTestContract, 'Deposited');
             await expect(connect.deposit(1, 2000)).to.emit(toTestContract, 'Deposited');
-            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - 3000n);
+
+            const amount = 3000;
+            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
+            expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount - calcFee(amount)));
 
             const userDetail = await connect.listUserEarnDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(4);
@@ -220,6 +223,46 @@ describe("Earning", function () {
 
             await advanceBlocks(100);
             expect(await connect.averageAPY(0)).to.eq(5000);
+        });
+    })
+
+    describe('Redeem', () => {
+        it('redeem work', async() => {
+            const senderAddr = await sender.getAddress();
+            const testContractAddr = await toTestContract.getAddress();
+            console.log(">>> sender address:", senderAddr);
+        
+            await transferToken(token, testContractAddr);
+            const AEarningPoolContractAddr = await AEarningPoolContract.getAddress();
+            await transferToken(tokenEth, AEarningPoolContractAddr);
+
+            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
+            expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
+
+            const connect = toTestContract.connect(sender);
+
+            const amount = 1000;
+            await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
+            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
+            expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount - calcFee(amount)));
+
+            await advanceBlocks(100);
+            await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, 270n, 0);
+            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount) + 270n);
+            expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount - calcFee(amount)) + 270n);
+
+            let userDetail = await connect.listUserEarnDetails(await sender.getAddress());
+            expect(userDetail.length).to.eq(1);
+
+            expect(userDetail[0].earningId).to.eq(1);
+            expect(userDetail[0].amount).to.eq(630);
+
+            await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, 630n, 0);
+            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount) + 900n);
+            expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount - calcFee(amount)) + 900n);
+
+            userDetail = await connect.listUserEarnDetails(await sender.getAddress());
+            expect(userDetail.length).to.eq(0);
         });
     })
 });
