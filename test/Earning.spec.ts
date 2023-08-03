@@ -13,7 +13,6 @@ import {
     deployContractWithProxyDeployer
 } from './utils';
 import {
-    MockAToken__factory,
     MockAavePool__factory
 } from '../typechain-types/factories/contracts/test';
 
@@ -42,12 +41,12 @@ describe("Earning", function () {
     let token: Contract;
     let tokenEth: Contract;
     let tokenLink: Contract;
+    let tokenAave: Contract;
 
     let ethEarningPoolContract: Contract;
     let linkEarningPoolContract: Contract;
 
-    let APoolContract: Contract;
-    let ATokenContract: Contract;
+    let aavePoolContract: Contract;
 
     let swapRouterContract: Contract;
 
@@ -105,6 +104,7 @@ describe("Earning", function () {
         token = await deployContractWithDeployer(deployer, mockErc20ContractName, ['USDA', 'USDA'], isSilent);
         tokenEth = await deployContractWithDeployer(deployer, mockErc20ContractName, ['ETH', 'ETH'], isSilent);
         tokenLink = await deployContractWithDeployer(deployer, mockErc20ContractName, ['LINK', 'LINK'], isSilent);
+        tokenAave = await deployContractWithProxyDeployer(deployer, 'MockAToken', ['AAVE ERC20', 'aERC20'], isSilent);
 
         swapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
 
@@ -113,24 +113,21 @@ describe("Earning", function () {
         const tokenLinkAddr = await tokenLink.getAddress();
         const uniswapRouterAddr = await swapRouterContract.getAddress();
 
-        APoolContract = await deployContractWithDeployer(deployer, 'MockAavePool', [], isSilent);
-        const pool = MockAavePool__factory.connect(await APoolContract.getAddress(), ethers.provider);
+        aavePoolContract = await deployContractWithDeployer(deployer, 'MockAavePool', [], isSilent);
+        const aavePool = MockAavePool__factory.connect(await aavePoolContract.getAddress(), ethers.provider);
 
-        ATokenContract = await deployContractWithProxyDeployer(deployer, 'MockAToken', ['AAVE ERC20', 'aERC20'], isSilent);
-        const AToken = MockAToken__factory.connect(await ATokenContract.getAddress(), ethers.provider);
+        const tokenAaveAddr = await tokenAave.getAddress();
+        const aavePoolAddr = await aavePoolContract.getAddress();
 
-        const ATokenAddr = await AToken.getAddress();
-        const APoolAddr = await APoolContract.getAddress();
+        const aavePoolConnect = aavePool.connect(deployer);
+        await aavePoolConnect.addAToken(tokenAddr, tokenAaveAddr);
+        await aavePoolConnect.addAToken(tokenEthAddr, tokenAaveAddr);
+        await aavePoolConnect.addAToken(tokenLinkAddr, tokenAaveAddr);
 
-        const poolConnect = pool.connect(deployer);
-        await poolConnect.addAToken(tokenAddr, ATokenAddr);
-        await poolConnect.addAToken(tokenEthAddr, ATokenAddr);
-        await poolConnect.addAToken(tokenLinkAddr, ATokenAddr);
-
-        ethEarningPoolContract = await deployContractWithDeployer(deployer, 'AaveEarningPool', [APoolAddr, ATokenAddr, tokenEthAddr], isSilent);
+        ethEarningPoolContract = await deployContractWithDeployer(deployer, 'AaveEarningPool', [aavePoolAddr, tokenAaveAddr, tokenEthAddr], isSilent);
         const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
 
-        linkEarningPoolContract = await deployContractWithDeployer(deployer, 'AaveEarningPool', [APoolAddr, ATokenAddr, tokenLinkAddr], isSilent);
+        linkEarningPoolContract = await deployContractWithDeployer(deployer, 'AaveEarningPool', [aavePoolAddr, tokenAaveAddr, tokenLinkAddr], isSilent);
         const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
 
         const DEFAULT_COMBOS = [{
@@ -179,13 +176,6 @@ describe("Earning", function () {
             }
         ]
 
-        /*
-            uint256 _maxDeposit,
-            uint256 _maxPerUserDeposit,
-            uint256 _minDepositAmount,
-            ISwapRouter _swapRouter,
-            Combo[] calldata _combos
-        */
         toTestContract = await deployContractWithDeployer(
             deployer,
             'Earning',
