@@ -16,7 +16,8 @@ import {
     MockAavePool__factory
 } from '../typechain-types/factories/contracts/test';
 
-const STAKING_FEE = 1000;
+// platform fee, i.e. 1000 represents 1%
+const PLATFORM_FEE = 1000;
 const MIN_DEPOSIT_AMOUNT = 100n;
 const MAX_DEPOSIT = expandTo18Decimals(10000000);;
 const MAX_PER_USER_DEPOSIT = expandTo18Decimals(100000);
@@ -34,7 +35,7 @@ const advanceBlocks = async (blockNumber: number) => {
 };
 
 const calcFee = (amount: number) => {
-    return amount * STAKING_FEE / 10000;
+    return amount * PLATFORM_FEE / 10000;
 }
 
 describe("Earning", function () {
@@ -81,6 +82,8 @@ describe("Earning", function () {
         
         const testContractAddr = await toTestContract.getAddress();
         await allowanceToken(sender, token, testContractAddr);
+        await allowanceToken(sender, tokenEth, testContractAddr);
+        await allowanceToken(sender, tokenLink, testContractAddr);
         
         const uniswapRouterAddr = await swapRouterContract.getAddress();
         await transferToken(tokenEth, uniswapRouterAddr);
@@ -90,9 +93,11 @@ describe("Earning", function () {
         await allowanceToken(sender, tokenLink, uniswapRouterAddr);
         
         const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
+        await allowanceToken(deployer, tokenEth, ethEarningPoolContractAddr, false);
         await allowanceToken(sender, tokenEth, ethEarningPoolContractAddr);
 
         const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
+        await allowanceToken(deployer, tokenLink, linkEarningPoolContractAddr, false);
         await allowanceToken(sender, tokenLink, linkEarningPoolContractAddr);
     }
 
@@ -117,17 +122,25 @@ describe("Earning", function () {
         const aavePool = MockAavePool__factory.connect(await aavePoolContract.getAddress(), ethers.provider);
 
         const tokenAaveAddr = await tokenAave.getAddress();
-        const aavePoolAddr = await aavePoolContract.getAddress();
+        const aavePoolAddr = await aavePool.getAddress();
 
         const aavePoolConnect = aavePool.connect(deployer);
         await aavePoolConnect.addAToken(tokenAddr, tokenAaveAddr);
         await aavePoolConnect.addAToken(tokenEthAddr, tokenAaveAddr);
         await aavePoolConnect.addAToken(tokenLinkAddr, tokenAaveAddr);
 
-        ethEarningPoolContract = await deployContractWithDeployer(deployer, 'AaveEarningPool', [aavePoolAddr, tokenAaveAddr, tokenEthAddr], isSilent);
+        ethEarningPoolContract = await deployContractWithDeployer(
+            deployer,
+            'AaveEarningPool', 
+            [aavePoolAddr, tokenAaveAddr, tokenEthAddr, MAX_PER_USER_DEPOSIT],
+            isSilent);
         const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
 
-        linkEarningPoolContract = await deployContractWithDeployer(deployer, 'AaveEarningPool', [aavePoolAddr, tokenAaveAddr, tokenLinkAddr], isSilent);
+        linkEarningPoolContract = await deployContractWithDeployer(
+            deployer,
+            'AaveEarningPool', 
+            [aavePoolAddr, tokenAaveAddr, tokenLinkAddr, MAX_PER_USER_DEPOSIT],
+            isSilent);
         const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
 
         const DEFAULT_COMBOS = [{
@@ -183,7 +196,7 @@ describe("Earning", function () {
             isSilent,
         );
 
-        await toTestContract.initialize(tokenAddr, STAKING_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
+        await toTestContract.initialize(tokenAddr, PLATFORM_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
         await ethEarningPoolContract.initialize(await toTestContract.getAddress());
         await linkEarningPoolContract.initialize(await toTestContract.getAddress());
     });
@@ -256,12 +269,14 @@ describe("Earning", function () {
 
             const senderAddr = await sender.getAddress();
             const testContractAddr = await toTestContract.getAddress();
+            const tokenEthAddr = await tokenEth.getAddress();
+            const tokenLinkAddr = await tokenLink.getAddress();
+
+            const SUPPLY_AMOUNT = 1000;
+            await expect(toTestContract.connect(deployer).supplyReward(0, SUPPLY_AMOUNT)).to.emit(toTestContract, 'RewardPumped');
+            await expect(toTestContract.connect(deployer).supplyReward(1, SUPPLY_AMOUNT)).to.emit(toTestContract, 'RewardPumped');
 
             const connect = toTestContract.connect(sender);
-
-            const SUPPLY_AMOUNT = TEST_AMOUNT;
-            await allowanceToken(deployer, token, testContractAddr, false);
-            await expect(toTestContract.connect(deployer).supplyReward(SUPPLY_AMOUNT)).to.emit(toTestContract, 'RewardPumped');
 
             const amount = 1000;
             await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
@@ -270,7 +285,7 @@ describe("Earning", function () {
 
             await advanceBlocks(10);
             const ethAmount = BigInt(300 - calcFee(300));
-            await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, ethAmount, 0);
+            await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, tokenEthAddr, ethAmount, 0);
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
             expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT + ethAmount);
 
@@ -284,9 +299,9 @@ describe("Earning", function () {
             await expect(connect.redeem(1)).to.rejectedWith('EARN-4');
 
             await advanceBlocks(100000);
-            await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, linkAmount, 0);
+            await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, tokenLinkAddr, linkAmount, 1);
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
-            expect(await tokenLink.balanceOf(senderAddr)).to.eq(TEST_AMOUNT + linkAmount);
+            expect(await tokenLink.balanceOf(senderAddr)).to.eq(TEST_AMOUNT + linkAmount + 1n);
 
             userDetail = await connect.listUserEarnDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(0);

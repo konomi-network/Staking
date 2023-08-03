@@ -27,7 +27,8 @@ contract AaveEarningPool is EarningPool {
     /// @dev Ignoring leap years
     uint256 internal constant SECONDS_PER_YEAR = 365 days;
 
-    constructor(address _aavePool, address _aToken, address _earningToken) EarningPool(_earningToken) {
+    constructor(address _aavePool, address _aToken, address _earningToken, uint256 _maxPerUserDeposit) 
+        EarningPool(_earningToken, _maxPerUserDeposit) {
         aavePool = IPool(_aavePool);
         aToken = IAToken(_aToken);
         aToken.approve(_aavePool, type(uint256).max);
@@ -37,19 +38,21 @@ contract AaveEarningPool is EarningPool {
         return _apy(currentTime());
     }
 
-    function reward(uint256 depositBlock) external override view returns (uint256) {
+    function reward(address onBehalfOf, uint256 depositBlock) external override view returns (uint256) {
         uint256 currentTimestamp = currentTime();
         if (currentTimestamp <= depositBlock) {
             return 0;
         }
 
-        uint256 savedAmount = aToken.balanceOf(address(this));
+        uint256 savedAmount = userTotalEarn[onBehalfOf];
         return _calculateReward(savedAmount, currentTimestamp, depositBlock);
     }
 
     function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
         uint256 currentApy = _apy(currentTimestamp) / RATE_PERCENT;
         rewardAmount = amount * currentApy * (currentTimestamp - depositBlock) / SECONDS_PER_YEAR;
+
+        // console.log(">>> _calculateReward: ", rewardAmount, currentApy, amount);
     }
 
     function _apy(uint256 currentTimestamp) internal view returns (uint256) {

@@ -21,13 +21,21 @@ abstract contract EarningPool is IEarningPool, AccessControlUpgradeable, Reentra
     // Who can invoke the pool method in this contract
     bytes32 public constant POOL_ROLE = keccak256("POOL");
 
+    // The mapping that tracks the total amount earned of an address
+    mapping(address => uint256) public userTotalEarn;
+
+    // The maximum deposit amount a user can earn
+    uint256 public maxPerUserDeposit;
+
     // The total amount of supply for this contract
     uint256 public totalSupply;
 
-    constructor(address _earningToken) {
+    constructor(address _earningToken, uint256 _maxPerUserDeposit) {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         earningToken = IERC20(_earningToken);
+
+        maxPerUserDeposit = _maxPerUserDeposit;
     }
 
     function initialize(address _invoker) public initializer {
@@ -39,22 +47,29 @@ abstract contract EarningPool is IEarningPool, AccessControlUpgradeable, Reentra
     function deposit(address onBehalfOf, uint256 amount) external override nonReentrant onlyRole(POOL_ROLE) {
         require(amount > 0, "EARN-10");
 
+        // Update user total earn amount
+        uint256 userEarnAmount = userTotalEarn[onBehalfOf] + amount;
+        require(userEarnAmount <= maxPerUserDeposit, "EARN-7");
+        userTotalEarn[onBehalfOf] += userEarnAmount;
+
         totalSupply += amount;
 
         _depositStakingToken(onBehalfOf, amount);
 
-        emit Deposited(onBehalfOf, amount);
+        emit Deposited(onBehalfOf, address(earningToken), amount);
     }
 
     function redeem(address onBehalfOf, uint256 amount) external override nonReentrant onlyRole(POOL_ROLE) {
         require(amount > 0, "EARN-10");
+
         require(totalSupply >= amount, "EARN-13");
 
+        userTotalEarn[onBehalfOf] -= amount.min(userTotalEarn[onBehalfOf]);
         totalSupply -= amount;
 
         _redeemStakingToken(onBehalfOf, amount);
 
-        emit Redeemed(onBehalfOf, amount);
+        emit Redeemed(onBehalfOf, address(earningToken), amount);
     }
 
     function _depositStakingToken(address onBehalfOf, uint256 amount) internal virtual;

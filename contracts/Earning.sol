@@ -49,10 +49,7 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
     mapping(uint16 => EarningToken) public earningTokens;
 
     // The total amount of token deposited into the contract
-    uint256 public totalDeposit;
-
-    // The total amount of reward for this contract
-    uint256 public totalReward;
+    mapping(address => uint256) public totalDeposit;
 
     // The total number of unique participants
     uint256 public totalParticipants;
@@ -132,8 +129,6 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
 
         swapRouter = _swapRouter;
 
-        totalDeposit = 0;
-        totalReward = 0;
         totalParticipants = 0;
 
         maxDeposit = _maxDeposit;
@@ -218,21 +213,13 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
     }
 
     function deposit(uint8 comboId, uint256 amountIn) external override notEnded whenNotPaused {
-        require (combos.length > comboId, "EARN-4");
-
-        if (totalDeposit + amountIn >= maxDeposit) {
-            // The max deposit will be reached, cap the amount
-            amountIn = amountIn.min(maxDeposit - totalDeposit);
-            // _amount == 0 means max deposit is reached
-            require(amountIn != 0, "EARN-5");
-        } else {
-            require(amountIn >= minDepositAmount, "EARN-6");
-        }
+        require(combos.length > comboId, "EARN-4");
+        require(amountIn >= minDepositAmount, "EARN-6");
 
         // Update user total earn amount
-        uint256 userEarn = userTotalEarn[msg.sender] + amountIn;
-        require(userEarn <= maxPerUserDeposit, "EARN-7");
-        userTotalEarn[msg.sender] = userEarn;
+        uint256 userEarnAmount = userTotalEarn[msg.sender] + amountIn;
+        require(userEarnAmount <= maxPerUserDeposit, "EARN-7");
+        userTotalEarn[msg.sender] = userEarnAmount;
 
         UserEarn[] storage userEarns = userEarnDetail[msg.sender];
 
@@ -250,25 +237,26 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
         // Swapping the specified token as a Stacking Token combination
         Combo storage combo = combos[comboId];
         for (uint i = 0; i < combo.entries.length; i++) {
-            ComboEntry storage token = combo.entries[i];
+            ComboEntry storage entry = combo.entries[i];
+            EarningToken storage earnInfo = entry.earning;
 
-            uint256 tokenAmountIn = _calculateTokenAmount(amountIn, token.weight);
-            uint256 tokenAmountOut = _swapExactInputSingle(address(earningToken), tokenAmountIn, token.earning.token);
+            uint256 tokenAmountIn = _calculateTokenAmount(amountIn, entry.weight);
+            uint256 tokenAmountOut = _swapExactInputSingle(address(earningToken), tokenAmountIn, earnInfo.token);
 
             // console.log(">>> deposit: ", token.earning.token, tokenAmountOut, tokenAmountIn);
 
-            IEarningPool(token.earning.earningContract).deposit(msg.sender, tokenAmountOut);
+            IEarningPool(earnInfo.earningContract).deposit(msg.sender, tokenAmountOut);
 
             // Add new combo to userEarnDetail storage
             userEarns.push(UserEarn({
-                earningId: token.earning.id,
+                earningId: earnInfo.id,
                 amount: tokenAmountOut,
                 earnedTime: currentTime()
             }));
+            
+            // Update total deposit
+            totalDeposit[earnInfo.token] += amountIn;
         }
-
-        // Update total deposit
-        totalDeposit += amountIn;
 
         emit Deposited(msg.sender, comboId, amountIn, amountFee);
     }
@@ -280,28 +268,27 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
 
         UserEarn memory userEarn = userEarns[earningId];
 
-        EarningToken storage token = earningTokens[userEarn.earningId];
-        require(token.earningContract != address(0), "EARN-11");
+        EarningToken storage earnInfo = earningTokens[userEarn.earningId];
+        require(earnInfo.earningContract != address(0), "EARN-11");
 
         // Get the user reward
-        uint256 userReward = IEarningPool(token.earningContract).reward(userEarn.earnedTime);
+        uint256 userReward = IEarningPool(earnInfo.earningContract).reward(msg.sender, userEarn.earnedTime);
 
         // Perform deduction
         uint256 totalDeduct = userReward + userEarn.amount;
 
         // console.log(">>> redeem: ", userReward, userEarn.amount, currentTime());
 
-        totalReward -= userReward;
-        totalDeposit -= userEarn.amount;
+        totalDeposit[earnInfo.token] -= userEarn.amount;
 
         userTotalEarn[msg.sender] -= userEarn.amount;
 
         _deleteUserEarn(msg.sender, earningId);
 
-        emit Redeemed(msg.sender, earningId, userEarn.amount, userReward);
+        emit Redeemed(msg.sender, earningId, earnInfo.token, userEarn.amount, userReward);
 
         // Transfer
-        IEarningPool(token.earningContract).redeem(msg.sender, totalDeduct);
+        IEarningPool(earnInfo.earningContract).redeem(msg.sender, totalDeduct);
     }
 
     /**
@@ -405,9 +392,13 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
      * @dev Supply amount of reward into this contract
      * @param amount The amount of reward
      */
-    function supplyReward(uint256 amount) external onlyOwner {
-        earningToken.transferFrom(msg.sender, address(this), amount);
-        totalReward += amount;
+    function supplyReward(uint16 earningId, uint256 amount) external onlyOwner {
+        EarningToken storage earnInfo = earningTokens[earningId];
+        require(earnInfo.earningContract != address(0), "EARN-11");
+
+        // console.log(">>> supplyReward", earningId, earnInfo.token, amount);
+
+        IEarningPool(earnInfo.earningContract).deposit(msg.sender, amount);
 
         emit RewardPumped(msg.sender, amount);
     }
