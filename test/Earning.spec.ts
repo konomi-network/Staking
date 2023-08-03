@@ -22,7 +22,6 @@ import {
 // platform fee, i.e. 1000 represents 1%
 const PLATFORM_FEE = 1000;
 const MIN_DEPOSIT_AMOUNT = 100n;
-const MAX_DEPOSIT = expandTo18Decimals(10000000);;
 const MAX_PER_USER_DEPOSIT = expandTo18Decimals(100000);
 const TEST_AMOUNT = expandTo18Decimals(10000);
 
@@ -199,12 +198,39 @@ describe("Earning", function () {
             isSilent,
         );
 
-        await toTestContract.initialize(tokenAddr, PLATFORM_FEE, uniswapRouterAddr, MAX_DEPOSIT, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
+        await toTestContract.initialize(tokenAddr, PLATFORM_FEE, uniswapRouterAddr, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
         await ethEarningPoolContract.initialize(await toTestContract.getAddress());
         await linkEarningPoolContract.initialize(await toTestContract.getAddress());
     });
 
     describe('Deposited', () => {
+        const makeCombo = async (i: number) => {
+            const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
+            const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
+            return {
+                creditRating: 0,
+                entries: [{
+                        weight: 70,
+                        earning: {
+                            id: i,
+                            name: 'ETH' + i,
+                            token: await tokenEth.getAddress(),
+                            earningContract: ethEarningPoolContractAddr,
+                        }
+                    },
+                    {
+                        weight: 30,
+                        earning: {
+                            id: i + 1,
+                            name: 'LINK' + i,
+                            token: await tokenLink.getAddress(),
+                            earningContract: linkEarningPoolContractAddr,
+                        }
+                    }
+                ]
+            }
+        }
+
         it('deposit but not enough', async () => {
             const testContractAddr = await toTestContract.getAddress();
 
@@ -223,39 +249,6 @@ describe("Earning", function () {
 
             const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
             const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
-
-            const combo = {
-                creditRating: 3,
-                entries: [{
-                        weight: 60,
-                        earning: {
-                            id: 20,
-                            name: 'ETH',
-                            token: await tokenEth.getAddress(),
-                            earningContract: ethEarningPoolContractAddr,
-                        }
-                    },
-                    {
-                        weight: 20,
-                        earning: {
-                            id: 21,
-                            name: 'LINK',
-                            token: await tokenLink.getAddress(),
-                            earningContract: linkEarningPoolContractAddr,
-                        }
-                    },
-                    {
-                        weight: 20,
-                        earning: {
-                            id: 22,
-                            name: 'LINK',
-                            token: await tokenLink.getAddress(),
-                            earningContract: linkEarningPoolContractAddr,
-                        }
-                    }
-                ]
-            }
-            await expect(connect.addCombo(combo)).to.emit(toTestContract, 'AddCombo');
 
             const errorCombo = {
                 creditRating: 4,
@@ -279,10 +272,18 @@ describe("Earning", function () {
                     }
                 ]
             }
-            await expect(connect.addCombo(errorCombo)).to.revertedWith('EARN-12');
+            await expect(connect.addCombo(errorCombo)).to.revertedWith('EARN-2');
+
+            const size = 255;
+            for (let i = 2; i < size; i++) {
+                const combo = await makeCombo(i * 10);
+                await expect(connect.addCombo(combo)).to.emit(toTestContract, 'AddCombo');
+            }
 
             const combos = await connect.listAllCombos();
-            expect(combos.length).to.eq(3);
+            expect(combos.length).to.eq(size);
+
+            await expect(connect.addCombo(errorCombo)).to.revertedWith('EARN-14');
         });
 
         it('removeCombo work', async () => {

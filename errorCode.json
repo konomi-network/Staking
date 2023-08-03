@@ -11,5 +11,6 @@
     "EARN-10": "Amount can NOT zero",
     "EARN-11": "Not support the earning contract",
     "EARN-12": "Already exist the earning contract",
-    "EARN-13": "Insufficient reward pool amount"
+    "EARN-13": "Insufficient reward pool amount",
+    "EARN-14": "Reached the maximum combo amount"
 }

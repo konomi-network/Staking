@@ -54,9 +54,6 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
     // The total number of unique participants
     uint256 public totalParticipants;
 
-    // The maximum deposit amount in total
-    uint256 public maxDeposit;
-
     // The maximum deposit amount a user can earn
     uint256 public maxPerUserDeposit;
 
@@ -99,6 +96,7 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
         for (uint i = 0; i < entries.length; i++) {
             ComboEntry calldata entry = entries[i];
             
+            // NOT exists in storage
             EarningToken storage eranInfo = earningTokens[entry.earning.id];
             require(eranInfo.earningContract == address(0), "EARN-12");
 
@@ -113,7 +111,6 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
         address _earningToken,
         uint24 _earningFee,
         address _swapRouter,
-        uint256 _maxDeposit,
         uint256 _maxPerUserDeposit,
         uint256 _minDepositAmount,
         Combo[] calldata _combos
@@ -131,7 +128,6 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
 
         totalParticipants = 0;
 
-        maxDeposit = _maxDeposit;
         maxPerUserDeposit = _maxPerUserDeposit;
         minDepositAmount = _minDepositAmount;
 
@@ -155,7 +151,7 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
 
     function _removeCombo(uint8 comboId) internal returns (Combo memory oldCombo) {
         require (combos.length > comboId, "EARN-4");
-        
+
         oldCombo = combos[comboId];
 
         combos[comboId] = combos[combos.length - 1];
@@ -410,6 +406,8 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
      * @param combo the earningToken information of combo
      */
     function addCombo(Combo calldata combo) external onlyOwner {
+        require(combos.length < type(uint8).max, "EARN-14");
+
         _newCombo(combo);
 
         emit AddCombo(msg.sender, combo);

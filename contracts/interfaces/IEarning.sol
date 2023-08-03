@@ -62,7 +62,6 @@ interface IEarning {
         address _earningToken,
         uint24 _earningFee,
         address _swapRouter,
-        uint256 _maxDeposit,
         uint256 _maxPerUserDeposit,
         uint256 _minDepositAmount,
         Combo[] calldata _combos
