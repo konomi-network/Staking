@@ -62,10 +62,9 @@ abstract contract EarningPool is IEarningPool, AccessControlUpgradeable, Reentra
     function redeem(address onBehalfOf, uint256 amount) external override nonReentrant onlyRole(POOL_ROLE) {
         require(amount > 0, "EARN-10");
 
-        require(totalSupply >= amount, "EARN-13");
-
+        // Only processing memory, as third-party contracts will not be updated to memory
         userTotalEarn[onBehalfOf] -= amount.min(userTotalEarn[onBehalfOf]);
-        totalSupply -= amount;
+        totalSupply -= amount.min(totalSupply);
 
         _redeemStakingToken(onBehalfOf, amount);
 
