@@ -21,7 +21,7 @@
     "precompile": "yarn clean",
     "pretest": "yarn compile",
     "ci": "yarn --frozen-lockfile",
-    "clean": "rimraf ./build ./dist ./coverage ./cache coverage.json",
+    "clean": "rimraf ./build ./dist ./coverage ./cache coverage.json && npx hardhat clean",
     "build": "tsc -p tsconfig.build.json",
     "compile": "npx hardhat compile",
     "start": "npx hardhat node",
@@ -30,7 +30,8 @@
     "lint": "yarn prettier --check **/*",
     "lint:fix": "yarn prettier --write **/*",
     "test": "npx hardhat coverage --testfiles \"test/*.ts\" --solcoverjs .solcover.js",
-    "deploy:staking": "npx hardhat run scripts/staking-deploy.ts --network ${NETWORK}",
+    "deploy:earning": "npx hardhat run scripts/earning-deploy.ts --network ${NETWORK}",
+    "deploy:test": "npx hardhat run scripts/test-deploy.ts --network localhost",
     "test-specific": "mocha -g"
   },
   "devDependencies": {
@@ -54,6 +55,7 @@
     "ts-node": "^10.9.1",
     "typechain": "^8.3.1",
     "typescript": "^5.1.6",
+    "web3": "^4.0.3",
     "yarn-upgrade-all": "^0.7.2"
   },
   "dependencies": {

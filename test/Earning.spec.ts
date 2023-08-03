@@ -75,7 +75,6 @@ describe("Earning", function () {
     }
 
     const transferTokens = async () => {
-        console.log(">>> Init transferTokens");
         const senderAddr = await sender.getAddress();
 
         await transferToken(token, senderAddr);
