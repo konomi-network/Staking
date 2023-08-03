@@ -16,7 +16,7 @@ import "./interfaces/IEarning.sol";
 import "./earning/interfaces/IEarningPool.sol";
 
 // Uncomment this line to use console.log
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 /**
  * 7Blocks supports multiple tokens, such as ETH, LINK, UNI and etc.
@@ -289,7 +289,7 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
         // Perform deduction
         uint256 totalDeduct = userReward + userEarn.amount;
 
-        console.log(">>> redeem: ", userReward, userEarn.amount, currentTime());
+        // console.log(">>> redeem: ", userReward, userEarn.amount, currentTime());
 
         totalReward -= userReward;
         totalDeposit -= userEarn.amount;

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -43,7 +44,7 @@ contract MockAavePool {
         return amount;
     }
 
-    function getReserveData(address asset) external view returns (DataTypes.ReserveData memory data) {
+    function getReserveData(address asset) external pure returns (DataTypes.ReserveData memory data) {
         data.aTokenAddress = asset;
         data.currentLiquidityRate = 16393529817768722931310203;
         data.lastUpdateTimestamp = 1;
