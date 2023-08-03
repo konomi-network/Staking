@@ -99,8 +99,8 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
         for (uint i = 0; i < entries.length; i++) {
             ComboEntry calldata entry = entries[i];
             
-            EarningToken storage token = earningTokens[entry.earning.id];
-            require(token.earningContract == address(0), "EARN-12");
+            EarningToken storage eranInfo = earningTokens[entry.earning.id];
+            require(eranInfo.earningContract == address(0), "EARN-12");
 
             totalWeight += entry.weight;
         }
@@ -154,6 +154,8 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
     }
 
     function _removeCombo(uint8 comboId) internal returns (Combo memory oldCombo) {
+        require (combos.length > comboId, "EARN-4");
+        
         oldCombo = combos[comboId];
 
         combos[comboId] = combos[combos.length - 1];
