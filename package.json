@@ -21,7 +21,7 @@
     "precompile": "yarn clean",
     "pretest": "yarn compile",
     "ci": "yarn --frozen-lockfile",
-    "clean": "rimraf ./build/",
+    "clean": "rimraf ./build ./dist ./coverage ./cache coverage.json",
     "build": "tsc -p tsconfig.build.json",
     "compile": "npx hardhat compile",
     "start": "npx hardhat node",
