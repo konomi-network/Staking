@@ -278,16 +278,14 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
         require(userEarns.length > 0, "EARN-9");
         require(userEarns.length > earningId, "EARN-4");
 
-        EarningToken storage token = earningTokens[earningId];
-        require(token.earningContract != address(0), "EARN-11");
-
         UserEarn memory userEarn = userEarns[earningId];
+
+        EarningToken storage token = earningTokens[userEarn.earningId];
+        require(token.earningContract != address(0), "EARN-11");
 
         // Get the user reward
         uint256 userReward = 0;
         // TODO: get averageAPY and calculateReward
-        IEarningPool(token.earningContract).redeem(msg.sender, userEarn.amount);
-
 
         // Perform deduction
         uint256 totalDeduct = userReward + userEarn.amount;
@@ -302,7 +300,7 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
         emit Redeemed(msg.sender, earningId, userEarn.amount, userReward);
 
         // Transfer
-        earningToken.transfer(msg.sender, totalDeduct);
+        IEarningPool(token.earningContract).redeem(msg.sender, totalDeduct);
     }
 
     /**
