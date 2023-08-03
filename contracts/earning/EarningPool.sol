@@ -8,6 +8,9 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./interfaces/IEarningPool.sol";
 
+// Uncomment this line to use console.log
+// import "hardhat/console.sol";
+
 abstract contract EarningPool is IEarningPool, AccessControlUpgradeable, ReentrancyGuard {
     using Math for uint256;
     using SafeERC20 for IERC20;
@@ -34,7 +37,7 @@ abstract contract EarningPool is IEarningPool, AccessControlUpgradeable, Reentra
     }
 
     function deposit(address onBehalfOf, uint256 amount) external override nonReentrant onlyRole(POOL_ROLE) {
-        require(amount > 0, "STAKE-10");
+        require(amount > 0, "EARN-10");
 
         totalSupply += amount;
 
@@ -44,7 +47,8 @@ abstract contract EarningPool is IEarningPool, AccessControlUpgradeable, Reentra
     }
 
     function redeem(address onBehalfOf, uint256 amount) external override nonReentrant onlyRole(POOL_ROLE) {
-        require(amount > 0, "STAKE-10");
+        require(amount > 0, "EARN-10");
+        require(totalSupply >= amount, "EARN-13");
 
         totalSupply -= amount;
 

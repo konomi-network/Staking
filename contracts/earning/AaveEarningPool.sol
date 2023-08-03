@@ -9,8 +9,10 @@ import { DataTypes } from "@aave/core-v3/contracts/protocol/libraries/types/Data
 import { MathUtils } from "@aave/core-v3/contracts/protocol/libraries/math/MathUtils.sol";
 import { WadRayMath } from "@aave/core-v3/contracts/protocol/libraries/math/WadRayMath.sol";
 
-
 import "./EarningPool.sol";
+
+// Uncomment this line to use console.log
+// import "hardhat/console.sol";
 
 contract AaveEarningPool is EarningPool {
     using SafeMath for uint256;
@@ -20,7 +22,10 @@ contract AaveEarningPool is EarningPool {
     IAToken public aToken;
 
     // WadRayMath.RAY returns 1e27, which is rounded to tens of thousands, i.e. 500 represents 5%
-    uint256 public constant RESERVED_PERCENT = 1e23;
+    uint256 public constant RESERVED_RATE = 10**23;
+    uint256 public constant RATE_PERCENT = 10**4;
+    /// @dev Ignoring leap years
+    uint256 internal constant SECONDS_PER_YEAR = 365 days;
 
     constructor(address _aavePool, address _aToken, address _earningToken) EarningPool(_earningToken) {
         aavePool = IPool(_aavePool);
@@ -33,16 +38,27 @@ contract AaveEarningPool is EarningPool {
     }
 
     function reward(uint256 depositBlock) external override view returns (uint256) {
-        return _apy(depositBlock);
+        uint256 currentTimestamp = currentTime();
+        if (currentTimestamp <= depositBlock) {
+            return 0;
+        }
+
+        uint256 savedAmount = aToken.balanceOf(address(this));
+        return _calculateReward(savedAmount, currentTimestamp, depositBlock);
+    }
+
+    function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
+        uint256 currentApy = _apy(currentTimestamp) / RATE_PERCENT;
+        rewardAmount = amount * currentApy * (currentTimestamp - depositBlock) / SECONDS_PER_YEAR;
     }
 
     function _apy(uint256 currentTimestamp) internal view returns (uint256) {
         DataTypes.ReserveData memory data = aavePool.getReserveData(address(earningToken));
         // MathUtils.calculateCompoundedInterest did not handle currentTimestamp less than lastUpdateTimestamp.
         if (currentTimestamp <= data.lastUpdateTimestamp) {
-            return WadRayMath.RAY / RESERVED_PERCENT;
+            return WadRayMath.RAY / RESERVED_RATE;
         }
-        return MathUtils.calculateCompoundedInterest(data.currentLiquidityRate, data.lastUpdateTimestamp, currentTimestamp) / RESERVED_PERCENT;
+        return MathUtils.calculateCompoundedInterest(data.currentLiquidityRate, data.lastUpdateTimestamp, currentTimestamp) / RESERVED_RATE;
     }
 
     function _depositStakingToken(address onBehalfOf, uint256 amount) override internal virtual {

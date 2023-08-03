@@ -16,7 +16,7 @@ import "./interfaces/IEarning.sol";
 import "./earning/interfaces/IEarningPool.sol";
 
 // Uncomment this line to use console.log
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 /**
  * 7Blocks supports multiple tokens, such as ETH, LINK, UNI and etc.
@@ -284,11 +284,12 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
         require(token.earningContract != address(0), "EARN-11");
 
         // Get the user reward
-        uint256 userReward = 0;
-        // TODO: get averageAPY and calculateReward
+        uint256 userReward = IEarningPool(token.earningContract).reward(userEarn.earnedTime);
 
         // Perform deduction
         uint256 totalDeduct = userReward + userEarn.amount;
+
+        console.log(">>> redeem: ", userReward, userEarn.amount, currentTime());
 
         totalReward -= userReward;
         totalDeposit -= userEarn.amount;
@@ -402,13 +403,13 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
      * @notice just admin can do it
      * 
      * @dev Supply amount of reward into this contract
-     * @param _amount The amount of reward
+     * @param amount The amount of reward
      */
-    function supplyReward(uint256 _amount) external onlyOwner {
-        earningToken.transferFrom(msg.sender, address(this), _amount);
-        totalReward += _amount;
+    function supplyReward(uint256 amount) external onlyOwner {
+        earningToken.transferFrom(msg.sender, address(this), amount);
+        totalReward += amount;
 
-        emit RewardPumped(msg.sender, _amount);
+        emit RewardPumped(msg.sender, amount);
     }
 
     /**

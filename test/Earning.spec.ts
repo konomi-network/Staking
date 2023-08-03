@@ -61,12 +61,15 @@ describe("Earning", function () {
         await expect(await token.connect(deployer).transfer(receiverAddr, TEST_AMOUNT)).to.emit(token, 'Transfer');
     }
 
-    const allowanceToken = async(token: Contract, contractAddr: string) => {
-        const senderAddr = await sender.getAddress();
+    const allowanceToken = async(runner: Signer, token: Contract, contractAddr: string, checkBalanceOf: boolean = true) => {
+        const runnerAddr = await runner.getAddress();
 
-        await expect(token.connect(sender).increaseAllowance(contractAddr, TEST_AMOUNT)).to.emit(token, 'Approval');
-        expect(await token.allowance(senderAddr, contractAddr)).to.eq(TEST_AMOUNT);
-        expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
+        await expect(token.connect(runner).increaseAllowance(contractAddr, TEST_AMOUNT)).to.emit(token, 'Approval');
+        expect(await token.allowance(runnerAddr, contractAddr)).to.eq(TEST_AMOUNT);
+
+        if (checkBalanceOf) {
+            expect(await token.balanceOf(runnerAddr)).to.eq(TEST_AMOUNT);
+        }
     }
 
     const transferTokens = async () => {
@@ -78,20 +81,20 @@ describe("Earning", function () {
         await transferToken(tokenLink, senderAddr);
         
         const testContractAddr = await toTestContract.getAddress();
-        await allowanceToken(token, testContractAddr);
+        await allowanceToken(sender, token, testContractAddr);
         
         const uniswapRouterAddr = await swapRouterContract.getAddress();
         await transferToken(tokenEth, uniswapRouterAddr);
         await transferToken(tokenLink, uniswapRouterAddr);
 
-        await allowanceToken(tokenEth, uniswapRouterAddr);
-        await allowanceToken(tokenLink, uniswapRouterAddr);
+        await allowanceToken(sender, tokenEth, uniswapRouterAddr);
+        await allowanceToken(sender, tokenLink, uniswapRouterAddr);
         
         const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
-        await allowanceToken(tokenEth, ethEarningPoolContractAddr);
+        await allowanceToken(sender, tokenEth, ethEarningPoolContractAddr);
 
         const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
-        await allowanceToken(tokenLink, linkEarningPoolContractAddr);
+        await allowanceToken(sender, tokenLink, linkEarningPoolContractAddr);
     }
 
     beforeEach(async () => {
@@ -262,14 +265,20 @@ describe("Earning", function () {
             await transferTokens();
 
             const senderAddr = await sender.getAddress();
+            const testContractAddr = await toTestContract.getAddress();
+
             const connect = toTestContract.connect(sender);
+
+            const SUPPLY_AMOUNT = TEST_AMOUNT;
+            await allowanceToken(deployer, token, testContractAddr, false);
+            await expect(toTestContract.connect(deployer).supplyReward(SUPPLY_AMOUNT)).to.emit(toTestContract, 'RewardPumped');
 
             const amount = 1000;
             await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
             expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
 
-            await advanceBlocks(100);
+            await advanceBlocks(10);
             const ethAmount = BigInt(300 - calcFee(300));
             await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, ethAmount, 0);
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
@@ -282,12 +291,17 @@ describe("Earning", function () {
             expect(userDetail[0].earningId).to.eq(1);
             expect(userDetail[0].amount).to.eq(linkAmount);
 
+            await expect(connect.redeem(1)).to.rejectedWith('EARN-4');
+
+            await advanceBlocks(100000);
             await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, linkAmount, 0);
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
             expect(await tokenLink.balanceOf(senderAddr)).to.eq(TEST_AMOUNT + linkAmount);
 
             userDetail = await connect.listUserEarnDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(0);
+
+            await expect(connect.redeem(0)).to.rejectedWith('EARN-9');
         });
     })
 });

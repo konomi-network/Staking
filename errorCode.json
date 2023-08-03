@@ -8,7 +8,8 @@
     "EARN-7": "Reached the maximum deposit amount a user can earn",
     "EARN-8": "Reached the maximum number of earning per user",
     "EARN-9": "No earning of any tokens",
-    "EARN-10": "Amount cant NOT zero",
+    "EARN-10": "Amount can NOT zero",
     "EARN-11": "Not support the earning contract",
-    "EARN-12": "Already exist the earning contract"
+    "EARN-12": "Already exist the earning contract",
+    "EARN-13": "Insufficient reward pool amount"
 }
