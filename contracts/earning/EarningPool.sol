@@ -8,10 +8,12 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./interfaces/IEarningPool.sol";
 
+import "../ErrorReporter.sol";
+
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
-abstract contract EarningPool is IEarningPool, AccessControlUpgradeable, ReentrancyGuard {
+abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgradeable, ReentrancyGuard {
     using Math for uint256;
     using SafeERC20 for IERC20;
 

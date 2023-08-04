@@ -14,6 +14,7 @@ import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 
 import "./interfaces/IEarning.sol";
 import "./earning/interfaces/IEarningPool.sol";
+import "./ErrorReporter.sol";
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
@@ -28,7 +29,7 @@ import "./earning/interfaces/IEarningPool.sol";
  * 
  * User can choose to earn to these different combos.
  */
-contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
@@ -116,7 +117,7 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
         Combo[] calldata _combos
     ) external override initializer {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        __Ownable_init();
+
         __Pausable_init();
 
         _combosInit(_combos);
@@ -187,7 +188,7 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
      * @param who The address to check
      */
     function listUserEarnDetails(address who) external view override returns (UserEarn[] memory) {
-        require(who == _msgSender() || owner() == _msgSender(), "EARN-3");
+        require(who == _msgSender(), "EARN-3");
         return userEarnDetail[who];
     }
 
@@ -390,7 +391,7 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
      * @dev Supply amount of reward into this contract
      * @param amount The amount of reward
      */
-    function supplyReward(uint16 earningId, uint256 amount) external onlyOwner {
+    function supplyReward(uint16 earningId, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         EarningToken storage earnInfo = earningTokens[earningId];
         require(earnInfo.earningContract != address(0), "EARN-11");
 
@@ -405,7 +406,7 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
      * @dev support append and remove combo to combs? just support handle combo list
      * @param combo the earningToken information of combo
      */
-    function addCombo(Combo calldata combo) external onlyOwner {
+    function addCombo(Combo calldata combo) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(combos.length < type(uint8).max, "EARN-14");
 
         _newCombo(combo);
@@ -417,7 +418,7 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
      * @dev Remove combo from _comboId
      * @param comboId the index of combo
      */
-    function removeCombo(uint8 comboId) external onlyOwner {
+    function removeCombo(uint8 comboId) external onlyRole(DEFAULT_ADMIN_ROLE) {
         Combo memory oldCombo = _removeCombo(comboId);
 
         emit RemoveCombo(msg.sender, comboId, oldCombo);
@@ -426,7 +427,7 @@ contract Earning is IEarning, AccessControlUpgradeable, OwnableUpgradeable, Paus
     /**
      * @dev end earning
      */
-    function endEarning() external onlyOwner {
+    function endEarning() external onlyRole(DEFAULT_ADMIN_ROLE) {
         earningEnded = true;
     }
 }

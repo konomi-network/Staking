@@ -22,8 +22,8 @@ contract AaveEarningPool is EarningPool {
     IAToken public aToken;
 
     // WadRayMath.RAY returns 1e27, which is rounded to tens of thousands, i.e. 500 represents 5%
-    uint256 public constant RESERVED_RATE = 10**23;
-    uint256 public constant RATE_PERCENT = 10**4;
+    uint256 internal constant RESERVED_RATE = 10**23;
+    uint256 internal constant RATE_PERCENT = 10**4;
     /// @dev Ignoring leap years
     uint256 internal constant SECONDS_PER_YEAR = 365 days;
 
@@ -49,8 +49,7 @@ contract AaveEarningPool is EarningPool {
     }
 
     function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
-        uint256 currentApy = _apy(currentTimestamp) / RATE_PERCENT;
-        rewardAmount = amount * currentApy * (currentTimestamp - depositBlock) / SECONDS_PER_YEAR;
+        rewardAmount = amount * _apy(currentTimestamp) * (currentTimestamp - depositBlock) / SECONDS_PER_YEAR / RATE_PERCENT;
 
         // console.log(">>> _calculateReward: ", rewardAmount, currentApy, amount);
     }
