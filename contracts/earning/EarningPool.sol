@@ -51,11 +51,16 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
     }
 
     function deposit(address onBehalfOf, uint256 amount) external override nonReentrant onlyRole(POOL_ROLE) {
-        require(amount > 0, "EARN-10");
+        if (amount <= 0) {
+            revert DepositAmountMustBeGreaterThanZero();
+        }
 
         // Update user total earn amount
         uint256 userEarnAmount = userTotalEarn[onBehalfOf] + amount;
-        require(userEarnAmount <= maxPerUserDeposit, "EARN-7");
+        if (userEarnAmount > maxPerUserDeposit) {
+            revert DepositReachedMaximumAmountPerUser();
+        }
+
         userTotalEarn[onBehalfOf] += userEarnAmount;
 
         totalSupply += amount;
@@ -66,7 +71,9 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
     }
 
     function redeem(address onBehalfOf, uint256 amount) external override nonReentrant onlyRole(POOL_ROLE) {
-        require(amount > 0, "EARN-10");
+        if (amount <= 0) {
+            revert RedeemAmountMustBeGreaterThanZero();
+        }
 
         // Only processing memory, as third-party contracts will not be updated to memory
         userTotalEarn[onBehalfOf] -= amount.min(userTotalEarn[onBehalfOf]);

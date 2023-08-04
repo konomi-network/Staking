@@ -88,7 +88,9 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
      * TODO: deprecate this, use a bool!
      */
     modifier notEnded() {
-        require(!earningEnded, "EARN-1");
+        if (earningEnded) {
+            revert EarningEnded();
+        }
         _;
     }
 
@@ -99,12 +101,16 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
             
             // NOT exists in storage
             EarningToken storage eranInfo = earningTokens[entry.earning.id];
-            require(eranInfo.earningContract == address(0), "EARN-12");
+            if (eranInfo.earningContract != address(0)) {
+                revert EarningConfigContractAlreadyExist();
+            }
 
             totalWeight += entry.weight;
         }
 
-        require(totalWeight == MAX_EARNING_TOKEN_WEIGHT, "EARN-2");
+        if (totalWeight != MAX_EARNING_TOKEN_WEIGHT) {
+            revert EarningConfigIncorrectWeight();
+        }
         _;
     }
 
@@ -151,7 +157,9 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
     }
 
     function _removeCombo(uint8 comboId) internal returns (Combo memory oldCombo) {
-        require (combos.length > comboId, "EARN-4");
+        if (combos.length <= comboId) {
+            revert EarningIdNotExist();
+        }
 
         oldCombo = combos[comboId];
 
@@ -188,7 +196,9 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
      * @param who The address to check
      */
     function listUserEarnDetails(address who) external view override returns (UserEarn[] memory) {
-        require(who == _msgSender(), "EARN-3");
+        if (who != _msgSender()) {
+            revert NoPermissionToView();
+        }
         return userEarnDetail[who];
     }
 
@@ -198,7 +208,9 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
      * @return currentAPY
      */
     function averageAPY(uint8 comboId) external view override returns (uint256 currentAPY) {
-        require (combos.length > comboId, "EARN-4");
+        if (combos.length <= comboId) {
+            revert EarningIdNotExist();
+        }
 
         uint256 totalApy = 0;
         Combo memory combo = combos[comboId];
@@ -212,18 +224,25 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
     }
 
     function deposit(uint8 comboId, uint256 amountIn) external override notEnded whenNotPaused {
-        require(combos.length > comboId, "EARN-4");
-        require(amountIn >= minDepositAmount, "EARN-6");
+        if (combos.length <= comboId) {
+            revert EarningIdNotExist();
+        }
+
+        if (amountIn < minDepositAmount) {
+            revert DepositMustBeExceedMinimumAmount();
+        }
 
         // Update user total earn amount
         uint256 userEarnAmount = userTotalEarn[msg.sender] + amountIn;
-        require(userEarnAmount <= maxPerUserDeposit, "EARN-7");
+        if (userEarnAmount > maxPerUserDeposit) {
+            revert DepositReachedMaximumAmountPerUser();
+        }
         userTotalEarn[msg.sender] = userEarnAmount;
 
         UserEarn[] storage userEarns = userEarnDetail[msg.sender];
-
-        // Update user earning details
-        require(userEarns.length < MAX_EARNING_PER_USER, "EARN-8");
+        if (userEarns.length >= MAX_EARNING_PER_USER) {
+            revert DepositReachedMaximumNumberPerUser();
+        }
 
         // Collect platform fees
         uint256 amountFee = _collectEarningFee(amountIn);
@@ -262,13 +281,20 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
 
     function redeem(uint16 earningId) external override notEnded whenNotPaused {
         UserEarn[] storage userEarns = userEarnDetail[msg.sender];
-        require(userEarns.length > 0, "EARN-9");
-        require(userEarns.length > earningId, "EARN-4");
+        if (userEarns.length <= 0) {
+            revert EarningIsEmpty();
+        }
+
+        if (userEarns.length <= earningId) {
+            revert EarningIdNotExist();
+        }
 
         UserEarn memory userEarn = userEarns[earningId];
 
         EarningToken storage earnInfo = earningTokens[userEarn.earningId];
-        require(earnInfo.earningContract != address(0), "EARN-11");
+        if (earnInfo.earningContract == address(0)) {
+            revert EarningConfigContractNotExist();
+        }
 
         // Get the user reward
         uint256 userReward = IEarningPool(earnInfo.earningContract).reward(msg.sender, userEarn.earnedTime);
@@ -393,7 +419,9 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
      */
     function supplyReward(uint16 earningId, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         EarningToken storage earnInfo = earningTokens[earningId];
-        require(earnInfo.earningContract != address(0), "EARN-11");
+        if (earnInfo.earningContract == address(0)) {
+            revert EarningConfigContractNotExist();
+        }
 
         // console.log(">>> supplyReward", earningId, earnInfo.token, amount);
 
@@ -407,7 +435,9 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
      * @param combo the earningToken information of combo
      */
     function addCombo(Combo calldata combo) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(combos.length < type(uint8).max, "EARN-14");
+        if (combos.length >= type(uint8).max) {
+            revert EarningConfigReachedMaximumAmount();
+        }
 
         _newCombo(combo);
 

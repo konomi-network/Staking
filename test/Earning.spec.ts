@@ -203,33 +203,6 @@ describe("Earning", function () {
     });
 
     describe('Deposited', () => {
-        const makeCombo = async (i: number) => {
-            const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
-            const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
-            return {
-                creditRating: 0,
-                entries: [{
-                        weight: 70,
-                        earning: {
-                            id: i,
-                            name: 'ETH' + i,
-                            token: await tokenEth.getAddress(),
-                            earningContract: ethEarningPoolContractAddr,
-                        }
-                    },
-                    {
-                        weight: 30,
-                        earning: {
-                            id: i + 1,
-                            name: 'LINK' + i,
-                            token: await tokenLink.getAddress(),
-                            earningContract: linkEarningPoolContractAddr,
-                        }
-                    }
-                ]
-            }
-        }
-
         it('deposit but not enough', async () => {
             const testContractAddr = await toTestContract.getAddress();
 
@@ -237,68 +210,7 @@ describe("Earning", function () {
             const connect = earningContract.connect(sender);
 
             const tx = connect.deposit(0, MIN_DEPOSIT_AMOUNT - 1n);
-            await expect(tx).to.be.revertedWith('EARN-6');
-        });
-
-        it('addCombo work', async () => {
-            const testContractAddr = await toTestContract.getAddress();
-
-            const earningContract = Earning__factory.connect(testContractAddr);
-            const connect = earningContract.connect(deployer);
-
-            const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
-            const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
-
-            const errorCombo = {
-                creditRating: 4,
-                entries: [{
-                        weight: 60,
-                        earning: {
-                            id: 20,
-                            name: 'ETH',
-                            token: await tokenEth.getAddress(),
-                            earningContract: ethEarningPoolContractAddr,
-                        }
-                    },
-                    {
-                        weight: 20,
-                        earning: {
-                            id: 21,
-                            name: 'LINK',
-                            token: await tokenLink.getAddress(),
-                            earningContract: linkEarningPoolContractAddr,
-                        }
-                    }
-                ]
-            }
-            await expect(connect.addCombo(errorCombo)).to.revertedWith('EARN-2');
-
-            const size = 255;
-            for (let i = 2; i < size; i++) {
-                const combo = await makeCombo(i * 10);
-                await expect(connect.addCombo(combo)).to.emit(toTestContract, 'AddCombo');
-            }
-
-            const combos = await connect.listAllCombos();
-            expect(combos.length).to.eq(size);
-
-            await expect(connect.addCombo(errorCombo)).to.revertedWith('EARN-14');
-        });
-
-        it('removeCombo work', async () => {
-            const testContractAddr = await toTestContract.getAddress();
-
-            const earningContract = Earning__factory.connect(testContractAddr);
-            const connect = earningContract.connect(deployer);
-
-            let combos = await connect.listAllCombos();
-            expect(combos.length).to.eq(2);
-
-            await expect(connect.removeCombo(99)).to.revertedWith('EARN-4');
-            await expect(connect.removeCombo(1)).to.emit(toTestContract, 'RemoveCombo');
-
-            combos = await connect.listAllCombos();
-            expect(combos.length).to.eq(1);
+            await expect(tx).to.be.revertedWithCustomError(earningContract, 'DepositMustBeExceedMinimumAmount');
         });
 
         it('deposit with 1000 and 2000', async () => {
@@ -339,6 +251,113 @@ describe("Earning", function () {
 
             expect(userDetail[3].earningId).to.eq(11);
             expect(userDetail[3].amount).to.eq(800 - calcFee(800));
+        });
+    });
+
+    describe('Combo add and remove test', () => {
+        const makeCombo = async (i: number) => {
+            const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
+            const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
+            return {
+                creditRating: 0,
+                entries: [{
+                        weight: 70,
+                        earning: {
+                            id: i,
+                            name: 'ETH' + i,
+                            token: await tokenEth.getAddress(),
+                            earningContract: ethEarningPoolContractAddr,
+                        }
+                    },
+                    {
+                        weight: 30,
+                        earning: {
+                            id: i + 1,
+                            name: 'LINK' + i,
+                            token: await tokenLink.getAddress(),
+                            earningContract: linkEarningPoolContractAddr,
+                        }
+                    }
+                ]
+            }
+        }
+        
+        it('addCombo work', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const earningContract = Earning__factory.connect(testContractAddr);
+            const connect = earningContract.connect(deployer);
+
+            const combo = await makeCombo(20);
+            await expect(connect.addCombo(combo)).to.emit(toTestContract, 'AddCombo');
+        });
+
+        it('addCombo revert EarningConfigIncorrectWeight', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const earningContract = Earning__factory.connect(testContractAddr);
+            const connect = earningContract.connect(deployer);
+
+            const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
+            const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
+
+            const errorCombo = {
+                creditRating: 4,
+                entries: [{
+                        weight: 60,
+                        earning: {
+                            id: 20,
+                            name: 'ETH',
+                            token: await tokenEth.getAddress(),
+                            earningContract: ethEarningPoolContractAddr,
+                        }
+                    },
+                    {
+                        weight: 20,
+                        earning: {
+                            id: 21,
+                            name: 'LINK',
+                            token: await tokenLink.getAddress(),
+                            earningContract: linkEarningPoolContractAddr,
+                        }
+                    }
+                ]
+            }
+            await expect(connect.addCombo(errorCombo)).to.revertedWithCustomError(earningContract, 'EarningConfigIncorrectWeight');
+        });
+
+        it('addCombo revert EarningConfigReachedMaximumAmount', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const earningContract = Earning__factory.connect(testContractAddr);
+            const connect = earningContract.connect(deployer);
+
+            const size = 255;
+            for (let i = 2; i < size; i++) {
+                const combo = await makeCombo(i * 10);
+                await expect(connect.addCombo(combo)).to.emit(toTestContract, 'AddCombo');
+            }
+
+            const combos = await connect.listAllCombos();
+            expect(combos.length).to.eq(size);
+
+            await expect(connect.addCombo(await makeCombo(255))).to.revertedWithCustomError(earningContract, 'EarningConfigReachedMaximumAmount');
+        });
+
+        it('removeCombo work', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const earningContract = Earning__factory.connect(testContractAddr);
+            const connect = earningContract.connect(deployer);
+
+            let combos = await connect.listAllCombos();
+            expect(combos.length).to.eq(2);
+
+            await expect(connect.removeCombo(99)).to.revertedWithCustomError(earningContract, 'EarningIdNotExist');
+            await expect(connect.removeCombo(1)).to.emit(toTestContract, 'RemoveCombo');
+
+            combos = await connect.listAllCombos();
+            expect(combos.length).to.eq(1);
         });
     });
 
@@ -396,7 +415,7 @@ describe("Earning", function () {
             expect(userDetail[0].earningId).to.eq(1);
             expect(userDetail[0].amount).to.eq(linkAmount);
 
-            await expect(connect.redeem(1)).to.rejectedWith('EARN-4');
+            await expect(connect.redeem(1)).to.revertedWithCustomError(earningContract, 'EarningIdNotExist');
 
             await advanceBlocks(100000);
             await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, tokenLinkAddr, linkAmount, 1);
@@ -406,7 +425,7 @@ describe("Earning", function () {
             userDetail = await connect.listUserEarnDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(0);
 
-            await expect(connect.redeem(0)).to.rejectedWith('EARN-9');
+            await expect(connect.redeem(0)).to.revertedWithCustomError(earningContract, 'EarningIsEmpty');
         });
     })
 });
