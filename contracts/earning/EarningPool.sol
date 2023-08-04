@@ -32,6 +32,10 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
     // The total amount of supply for this contract
     uint256 public totalSupply;
 
+    uint256 internal constant RATE_PERCENT = 10**4;
+    /// @dev Ignoring leap years
+    uint256 internal constant SECONDS_PER_YEAR = 365 days;
+
     constructor(address _earningToken, uint256 _maxPerUserDeposit) {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 

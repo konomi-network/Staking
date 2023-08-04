@@ -20,9 +20,6 @@ contract CompoundEarningPool is EarningPool {
     uint256 internal constant BASE_MANTISSA = 10**18;
     uint256 internal constant BLOCKS_PER_DAY = 5760;
     uint256 internal constant DAYS_PER_YEAR = 365;
-    uint256 internal constant RATE_PERCENT = 10**4;
-    /// @dev Ignoring leap years
-    uint256 internal constant SECONDS_PER_YEAR = 365 days;
 
     constructor(address _cToken, address _earningToken, uint256 _maxPerUserDeposit) 
         EarningPool(_earningToken, _maxPerUserDeposit) {
