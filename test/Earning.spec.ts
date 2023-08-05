@@ -14,7 +14,8 @@ import {
 } from './utils';
 import {
     MockAavePool__factory,
-    MockERC20__factory
+    MockERC20__factory,
+    MockCToken__factory,
 } from '../typechain-types/factories/contracts/test';
 import {
     Earning__factory
@@ -382,10 +383,18 @@ describe("Earning", function () {
             await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
             expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
 
-            expect(await connect.averageAPY(0)).to.eq(316);
+            const cToken = MockCToken__factory.connect(await tokenCompound.getAddress());
+            const aavePool = MockAavePool__factory.connect(await aavePoolContract.getAddress());
+            // mock number change
+            await cToken.connect(deployer).mockN(1);
+            await aavePool.connect(deployer).mockN(1);
+            expect(await connect.averageAPY(0)).to.eq(314);
 
-            await advanceBlocks(100);
-            expect(await connect.averageAPY(0)).to.eq(393);
+            await advanceBlocks(10);
+            // mock number change
+            await cToken.connect(deployer).mockN(2);
+            await aavePool.connect(deployer).mockN(2);
+            expect(await connect.averageAPY(0)).to.eq(653);
         });
     })
 

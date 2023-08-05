@@ -12,6 +12,7 @@ import "hardhat/console.sol";
 
 contract MockAavePool {
     mapping(address => address) public assetToAToken;
+    uint128 n;
 
     function addAToken(address asset, address atoken) public {
         assetToAToken[asset] = atoken;
@@ -48,9 +49,13 @@ contract MockAavePool {
 
     function getReserveData(address asset) external view returns (DataTypes.ReserveData memory data) {
         data.aTokenAddress = asset;
-        data.currentLiquidityRate = 16393529817768722931310203 * uint128(block.number / 400);
+        data.currentLiquidityRate = 16393529817768722931310203 * n;
         data.lastUpdateTimestamp = 1;
 
         console.log(">>> MockAavePool supplyRatePerYear:", data.currentLiquidityRate, block.number);
+    }
+
+    function mockN(uint128 _n) external {
+        n = _n;
     }
 }

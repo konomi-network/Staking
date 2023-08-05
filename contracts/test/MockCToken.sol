@@ -10,6 +10,8 @@ import "../earning/interfaces/ICompound.sol";
 import "hardhat/console.sol";
 
 contract MockCToken is CErc20, ERC20 {
+    uint128 n;
+
     constructor() ERC20("cToken", "cToken") {}
 
     function mint(uint amount) external override returns (uint256) {
@@ -27,8 +29,12 @@ contract MockCToken is CErc20, ERC20 {
     }
 
     function supplyRatePerBlock() external view override returns (uint256 rateByPerBlock) {
-        rateByPerBlock = 37893605000 * block.number / 400; //1e16;
+        rateByPerBlock = 37893605000 * n; //1e16;
 
         console.log(">>> MockCToken supplyRatePerBlock:", rateByPerBlock, block.number);
+    }
+    
+    function mockN(uint128 _n) external {
+        n = _n;
     }
 }
