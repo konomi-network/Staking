@@ -37,6 +37,8 @@ contract MockAavePool {
         uint256 amount,
         address to
     ) public virtual returns (uint256) {
+        console.log(">>> MockAavePool withdraw:", to, amount);
+
         MockAToken atoken = MockAToken(assetToAToken[asset]);
         atoken.burn(msg.sender, amount);
 

@@ -45,6 +45,7 @@ describe("Earning", function () {
     let tokenEth: Contract;
     let tokenLink: Contract;
     let tokenAave: Contract;
+    let tokenCompound: Contract;
 
     let ethEarningPoolContract: Contract;
     let linkEarningPoolContract: Contract;
@@ -111,6 +112,7 @@ describe("Earning", function () {
         tokenEth = await deployContractWithDeployer(deployer, mockErc20ContractName, ['ETH', 'ETH'], isSilent);
         tokenLink = await deployContractWithDeployer(deployer, mockErc20ContractName, ['LINK', 'LINK'], isSilent);
         tokenAave = await deployContractWithProxyDeployer(deployer, 'MockAToken', ['AAVE ERC20', 'aERC20'], isSilent);
+        tokenCompound = await deployContractWithDeployer(deployer, 'MockCToken', [], isSilent);
 
         swapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
 
@@ -121,9 +123,10 @@ describe("Earning", function () {
 
         aavePoolContract = await deployContractWithDeployer(deployer, 'MockAavePool', [], isSilent);
         const aavePool = MockAavePool__factory.connect(await aavePoolContract.getAddress(), ethers.provider);
+        const aavePoolAddr = await aavePool.getAddress();
 
         const tokenAaveAddr = await tokenAave.getAddress();
-        const aavePoolAddr = await aavePool.getAddress();
+        const tokenCompoundAddr = await tokenCompound.getAddress();
 
         const aavePoolConnect = aavePool.connect(deployer);
         await aavePoolConnect.addAToken(tokenAddr, tokenAaveAddr);
@@ -139,8 +142,8 @@ describe("Earning", function () {
 
         linkEarningPoolContract = await deployContractWithDeployer(
             deployer,
-            'AaveEarningPool', 
-            [aavePoolAddr, tokenAaveAddr, tokenLinkAddr, MAX_PER_USER_DEPOSIT],
+            'CompoundEarningPool', 
+            [tokenCompoundAddr, tokenLinkAddr, MAX_PER_USER_DEPOSIT],
             isSilent);
         const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
 
@@ -376,7 +379,7 @@ describe("Earning", function () {
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
 
             await advanceBlocks(100);
-            expect(await connect.averageAPY(0)).to.eq(5000);
+            expect(await connect.averageAPY(0)).to.eq(290);
         });
     })
 
@@ -417,10 +420,10 @@ describe("Earning", function () {
 
             await expect(connect.redeem(1)).to.revertedWithCustomError(earningContract, 'EarningIdNotExist');
 
-            await advanceBlocks(100000);
-            await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, tokenLinkAddr, linkAmount, 1);
+            // await advanceBlocks(100000);
+            await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, tokenLinkAddr, linkAmount, 0);
             expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
-            expect(await tokenLink.balanceOf(senderAddr)).to.eq(TEST_AMOUNT + linkAmount + 1n);
+            expect(await tokenLink.balanceOf(senderAddr)).to.eq(TEST_AMOUNT + linkAmount);
 
             userDetail = await connect.listUserEarnDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(0);

@@ -32,7 +32,9 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
     // The total amount of supply for this contract
     uint256 public totalSupply;
 
-    uint256 internal constant RATE_PERCENT = 10**4;
+    // Maximum percentage factor (100.00%)
+    uint256 internal constant PERCENTAGE_FACTOR = 1e4;
+
     /// @dev Ignoring leap years
     uint256 internal constant SECONDS_PER_YEAR = 365 days;
 

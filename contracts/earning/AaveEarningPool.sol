@@ -22,7 +22,7 @@ contract AaveEarningPool is EarningPool {
     IAToken public aToken;
 
     // WadRayMath.RAY returns 1e27, which is rounded to tens of thousands, i.e. 500 represents 5%
-    uint256 internal constant RESERVED_RATE = 10**23;
+    uint256 internal constant RESERVED_RATE = WadRayMath.RAY / PERCENTAGE_FACTOR;
 
     constructor(address _aavePool, address _aToken, address _earningToken, uint256 _maxPerUserDeposit) 
         EarningPool(_earningToken, _maxPerUserDeposit) {
@@ -46,7 +46,7 @@ contract AaveEarningPool is EarningPool {
     }
 
     function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
-        rewardAmount = amount * _apy(currentTimestamp) * (currentTimestamp - depositBlock) / SECONDS_PER_YEAR / RATE_PERCENT;
+        rewardAmount = amount * _apy(currentTimestamp) * (currentTimestamp - depositBlock) / SECONDS_PER_YEAR / PERCENTAGE_FACTOR;
 
         // console.log(">>> _calculateReward: ", rewardAmount, amount);
     }
@@ -55,9 +55,10 @@ contract AaveEarningPool is EarningPool {
         DataTypes.ReserveData memory data = aavePool.getReserveData(address(earningToken));
         // MathUtils.calculateCompoundedInterest did not handle currentTimestamp less than lastUpdateTimestamp.
         if (currentTimestamp <= data.lastUpdateTimestamp) {
-            return WadRayMath.RAY / RESERVED_RATE;
+            return 0;
         }
-        return MathUtils.calculateCompoundedInterest(data.currentLiquidityRate, data.lastUpdateTimestamp, currentTimestamp) / RESERVED_RATE;
+        uint256 compoundInterest = MathUtils.calculateCompoundedInterest(data.currentLiquidityRate, data.lastUpdateTimestamp, currentTimestamp);
+        return (compoundInterest - WadRayMath.RAY) / RESERVED_RATE;
     }
 
     function _depositStakingToken(address onBehalfOf, uint256 amount) override internal virtual {
