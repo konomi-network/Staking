@@ -86,6 +86,26 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
         emit Redeemed(onBehalfOf, address(earningToken), amount);
     }
 
+    function apy() external view returns (uint256 supplyRatePerYear) {
+        supplyRatePerYear = _calculateApy();
+    }
+
+    function reward(address onBehalfOf, uint256 depositBlock) external override view returns (uint256) {
+        uint256 currentTimestamp = currentTime();
+        if (currentTimestamp <= depositBlock) {
+            return 0;
+        }
+        
+        uint256 savedAmount = userTotalEarn[onBehalfOf];
+        return _calculateReward(savedAmount, currentTimestamp, depositBlock);
+    }
+
+    function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
+        rewardAmount = amount * _calculateApy() * (currentTimestamp - depositBlock) / SECONDS_PER_YEAR / PERCENTAGE_FACTOR;
+    }
+
+    function _calculateApy() internal view virtual returns (uint256 supplyRatePerYear);
+
     function _depositStakingToken(address onBehalfOf, uint256 amount) internal virtual;
 
     function _redeemStakingToken(address onBehalfOf, uint256 amount) internal virtual;

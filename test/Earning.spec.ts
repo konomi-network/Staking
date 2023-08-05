@@ -13,7 +13,8 @@ import {
     deployContractWithProxyDeployer
 } from './utils';
 import {
-    MockAavePool__factory
+    MockAavePool__factory,
+    MockERC20__factory
 } from '../typechain-types/factories/contracts/test';
 import {
     Earning__factory
@@ -25,7 +26,7 @@ const MIN_DEPOSIT_AMOUNT = 100n;
 const MAX_PER_USER_DEPOSIT = expandTo18Decimals(100000);
 const TEST_AMOUNT = expandTo18Decimals(10000);
 
-function expandTo18Decimals(n: number): BigInt {
+function expandTo18Decimals(n: number): bigint {
     return BigInt(n) * (10n ** 18n);
 }
 
@@ -61,13 +62,16 @@ describe("Earning", function () {
     let invoker: Signer;
 
     const transferToken = async(token: Contract, receiverAddr: string) => {
-        await expect(await token.connect(deployer).transfer(receiverAddr, TEST_AMOUNT)).to.emit(token, 'Transfer');
+        const erc20 = MockERC20__factory.connect(await token.getAddress());
+        await expect(await erc20.connect(deployer).transfer(receiverAddr, TEST_AMOUNT)).to.emit(token, 'Transfer');
     }
 
     const allowanceToken = async(runner: Signer, token: Contract, contractAddr: string, checkBalanceOf: boolean = true) => {
         const runnerAddr = await runner.getAddress();
 
-        await expect(token.connect(runner).increaseAllowance(contractAddr, TEST_AMOUNT)).to.emit(token, 'Approval');
+        const erc20 = MockERC20__factory.connect(await token.getAddress());
+
+        await expect(erc20.connect(runner).increaseAllowance(contractAddr, TEST_AMOUNT)).to.emit(token, 'Approval');
         expect(await token.allowance(runnerAddr, contractAddr)).to.eq(TEST_AMOUNT);
 
         if (checkBalanceOf) {
@@ -229,12 +233,12 @@ describe("Earning", function () {
             const earningContract = Earning__factory.connect(testContractAddr);
             const connect = earningContract.connect(sender);
 
-            let amount = 1000;
+            let amount = 1000n;
             await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
-            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
+            expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
             expect(await token.balanceOf(testContractAddr)).to.eq(amount);
-            expect(await tokenEth.balanceOf(uniswapRouterAddr)).to.eq(TEST_AMOUNT - BigInt(300 - calcFee(300)));
-            expect(await tokenLink.balanceOf(uniswapRouterAddr)).to.eq(TEST_AMOUNT - BigInt(700 - calcFee(700)));
+            expect(await tokenEth.balanceOf(uniswapRouterAddr) + BigInt(300 - calcFee(300))).to.eq(TEST_AMOUNT);
+            expect(await tokenLink.balanceOf(uniswapRouterAddr) + BigInt(700 - calcFee(700))).to.eq(TEST_AMOUNT);
             expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
             expect(await tokenLink.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
 
@@ -374,12 +378,14 @@ describe("Earning", function () {
             const earningContract = Earning__factory.connect(testContractAddr);
             const connect = earningContract.connect(sender);
 
-            const amount = 500;
+            const amount = 500n;
             await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
-            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
+            expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
+
+            expect(await connect.averageAPY(0)).to.eq(316);
 
             await advanceBlocks(100);
-            expect(await connect.averageAPY(0)).to.eq(290);
+            expect(await connect.averageAPY(0)).to.eq(393);
         });
     })
 
@@ -400,16 +406,16 @@ describe("Earning", function () {
 
             const connect = earningContract.connect(sender);
 
-            const amount = 1000;
+            const amount = 1000n;
             await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
-            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
+            expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
             expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
 
             await advanceBlocks(10);
             const ethAmount = BigInt(300 - calcFee(300));
             await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, tokenEthAddr, ethAmount, 0);
-            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
-            expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT + ethAmount);
+            expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
+            expect(await tokenEth.balanceOf(senderAddr) - ethAmount).to.eq(TEST_AMOUNT);
 
             let userDetail = await connect.listUserEarnDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(1);
@@ -422,8 +428,8 @@ describe("Earning", function () {
 
             // await advanceBlocks(100000);
             await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, tokenLinkAddr, linkAmount, 0);
-            expect(await token.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - BigInt(amount));
-            expect(await tokenLink.balanceOf(senderAddr)).to.eq(TEST_AMOUNT + linkAmount);
+            expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
+            expect(await tokenLink.balanceOf(senderAddr) - linkAmount).to.eq(TEST_AMOUNT);
 
             userDetail = await connect.listUserEarnDetails(await sender.getAddress());
             expect(userDetail.length).to.eq(0);

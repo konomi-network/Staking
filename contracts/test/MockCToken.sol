@@ -27,8 +27,8 @@ contract MockCToken is CErc20, ERC20 {
     }
 
     function supplyRatePerBlock() external view override returns (uint256 rateByPerBlock) {
-        rateByPerBlock = 37893605000; //1e16;
+        rateByPerBlock = 37893605000 * block.number / 400; //1e16;
 
-        console.log(">>> MockCToken supplyRatePerBlock:", rateByPerBlock);
+        console.log(">>> MockCToken supplyRatePerBlock:", rateByPerBlock, block.number);
     }
 }

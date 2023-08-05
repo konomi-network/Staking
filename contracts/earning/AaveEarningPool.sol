@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IPool } from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import { IAToken } from "@aave/core-v3/contracts/interfaces/IAToken.sol";
 import { DataTypes } from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
-import { MathUtils } from "@aave/core-v3/contracts/protocol/libraries/math/MathUtils.sol";
 import { WadRayMath } from "@aave/core-v3/contracts/protocol/libraries/math/WadRayMath.sol";
 
 import "./EarningPool.sol";
@@ -31,34 +30,11 @@ contract AaveEarningPool is EarningPool {
         aToken.approve(_aavePool, type(uint256).max);
     }
 
-    function apy() external override view returns (uint256) {
-        return _apy(currentTime());
-    }
-
-    function reward(address onBehalfOf, uint256 depositBlock) external override view returns (uint256) {
-        uint256 currentTimestamp = currentTime();
-        if (currentTimestamp <= depositBlock) {
-            return 0;
-        }
-
-        uint256 savedAmount = userTotalEarn[onBehalfOf];
-        return _calculateReward(savedAmount, currentTimestamp, depositBlock);
-    }
-
-    function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
-        rewardAmount = amount * _apy(currentTimestamp) * (currentTimestamp - depositBlock) / SECONDS_PER_YEAR / PERCENTAGE_FACTOR;
-
-        // console.log(">>> _calculateReward: ", rewardAmount, amount);
-    }
-
-    function _apy(uint256 currentTimestamp) internal view returns (uint256) {
+    function _calculateApy() override internal view virtual returns (uint256 supplyRatePerYear) {
         DataTypes.ReserveData memory data = aavePool.getReserveData(address(earningToken));
-        // MathUtils.calculateCompoundedInterest did not handle currentTimestamp less than lastUpdateTimestamp.
-        if (currentTimestamp <= data.lastUpdateTimestamp) {
-            return 0;
-        }
-        uint256 compoundInterest = MathUtils.calculateCompoundedInterest(data.currentLiquidityRate, data.lastUpdateTimestamp, currentTimestamp);
-        return (compoundInterest - WadRayMath.RAY) / RESERVED_RATE;
+        supplyRatePerYear = data.currentLiquidityRate / RESERVED_RATE;
+
+        // console.log(">>> AaveEarningPool _apy:", data.currentLiquidityRate, supplyRatePerYear);
     }
 
     function _depositStakingToken(address onBehalfOf, uint256 amount) override internal virtual {

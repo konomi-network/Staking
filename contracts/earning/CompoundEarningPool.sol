@@ -32,27 +32,13 @@ contract CompoundEarningPool is EarningPool {
         cToken = CErc20(_cToken);
     }
 
-    function apy() external override view returns (uint256 supplyRatePerYear) {
-        supplyRatePerYear = _apy();
-    }
-
-    function reward(address onBehalfOf, uint256 depositBlock) external override view returns (uint256) {
-        uint256 currentTimestamp = currentTime();
-        if (currentTimestamp <= depositBlock) {
-            return 0;
-        }
-
-        uint256 savedAmount = userTotalEarn[onBehalfOf];
-        return _calculateReward(savedAmount, currentTimestamp, depositBlock);
-    }
-
-    function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
-        rewardAmount = amount * _apy() * (currentTimestamp - depositBlock) / SECONDS_PER_YEAR / PERCENTAGE_FACTOR;
-    }
-
-    function _apy() internal view returns (uint256 supplyRatePerYear) {
+    /**
+     * APR to APY
+     * 
+     * supplyRatePerYear = (((supplyRatePerBlock * BLOCKS_PER_DAY / WAD + 1) ^ DAYS_PER_YEAR) - 1) * 100;
+     */
+    function _calculateApy() override internal view virtual returns (uint256 supplyRatePerYear) {
         uint256 supplyRatePerBlock = cToken.supplyRatePerBlock();
-        // supplyRatePerYear = (((supplyRatePerBlock * BLOCKS_PER_DAY / WAD + 1) ^ DAYS_PER_YEAR) - 1) * 100;
         uint256 compoundInterest = MathUtils.calculateCompoundedInterest(supplyRatePerBlock * BLOCKS_PER_DAY, DAYS_PER_YEAR);
         supplyRatePerYear = (compoundInterest - WadMath.WAD) / RESERVED_RATE;
 

@@ -46,9 +46,11 @@ contract MockAavePool {
         return amount;
     }
 
-    function getReserveData(address asset) external pure returns (DataTypes.ReserveData memory data) {
+    function getReserveData(address asset) external view returns (DataTypes.ReserveData memory data) {
         data.aTokenAddress = asset;
-        data.currentLiquidityRate = 16393529817768722931310203;
+        data.currentLiquidityRate = 16393529817768722931310203 * uint128(block.number / 400);
         data.lastUpdateTimestamp = 1;
+
+        console.log(">>> MockAavePool supplyRatePerYear:", data.currentLiquidityRate, block.number);
     }
 }
