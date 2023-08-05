@@ -34,6 +34,10 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,
+  },
+  contractSizer: {
+    runOnCompile: true,
+    strict: true
   }
 };
 

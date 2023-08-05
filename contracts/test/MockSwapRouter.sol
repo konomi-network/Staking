@@ -40,7 +40,7 @@ contract MockSwapRouter is ISwapRouter {
         int256 amount0Delta,
         int256 amount1Delta,
         bytes calldata data
-    ) external {
+    ) external pure {
         amount0Delta;
         amount1Delta;
         data;
