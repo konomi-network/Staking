@@ -1,21 +1,60 @@
 import { TokenInfo, makeCombo} from './utils/combo.util';
+import { ethers } from 'hardhat';
+import {
+    deployContract,
+    deployContractWithProxy
+} from './utils/deploy.util';
 
-export const ethTokenAddress = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1';
-export const linkTokenAddress = '0xf97f4df75117a78c1A5a0DBb814Af92458539FB4';
+export interface Config {
+    aavePoolAddress: string;
+    aTokenAddress: string;
+    cTokenAddress: string;
+    ethTokenAddress: string;
+    linkTokenAddress: string;
+    earningTokenAddress: string;
+    uniswapRouterAddress: string;
+}
 
-export function makeCombos(ethEarningPoolContractAddress: string, linkEarningPoolContractAddress: string) {
+export async function makeConfig(): Promise<Config> {
+    const [deployer] = await ethers.getSigners();
+
+    const aavePoolContract = await deployContract(deployer, 'MockAavePool', []);
+ 
+    const aToken = await deployContractWithProxy(deployer, 'MockAToken', ['AAVE ERC20', 'AAVE']);
+
+    const cToken = await deployContract(deployer, 'MockCToken', []);
+
+    const ethToken = await deployContract(deployer, 'MockERC20', ['ETH', 'ETH']);
+    const linkToken = await deployContract(deployer, 'MockERC20', ['LINK', 'LINK']);
+    
+    const earningToken = await deployContract(deployer, 'MockERC20', ['USDA', 'USDA']);
+    
+    const swapRouterContract = await deployContract(deployer, 'MockSwapRouter', []);
+
+    return {
+        aavePoolAddress: await aavePoolContract.getAddress(),
+        aTokenAddress: await aToken.getAddress(),
+        cTokenAddress: await cToken.getAddress(),
+        ethTokenAddress: await ethToken.getAddress(),
+        linkTokenAddress: await linkToken.getAddress(),
+        earningTokenAddress: await earningToken.getAddress(),
+        uniswapRouterAddress: await swapRouterContract.getAddress()
+    }
+}
+
+export function makeCombos(config: Config, ethEarningPoolAddress: string, linkEarningAddress: string) {
     const tokenWeth: TokenInfo = {
         id: 0,
         tokenName: 'WETH',
-        tokenAddress: ethTokenAddress,
-        earningPoolContractAddress: ethEarningPoolContractAddress,
+        tokenAddress: config.ethTokenAddress,
+        earningPoolContractAddress: ethEarningPoolAddress,
     }
 
     const tokenLink: TokenInfo = {
         id: 1,
         tokenName: 'LINK',
-        tokenAddress: linkTokenAddress,
-        earningPoolContractAddress: linkEarningPoolContractAddress,
+        tokenAddress: config.linkTokenAddress,
+        earningPoolContractAddress: linkEarningAddress,
     }
 
     return [{
