@@ -63,7 +63,7 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
             revert DepositReachedMaximumAmountPerUser();
         }
 
-        userTotalEarn[onBehalfOf] += userEarnAmount;
+        userTotalEarn[onBehalfOf] = userEarnAmount;
 
         totalSupply += amount;
 
@@ -78,8 +78,16 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
         }
 
         // Only processing memory, as third-party contracts will not be updated to memory
-        userTotalEarn[onBehalfOf] -= amount.min(userTotalEarn[onBehalfOf]);
-        totalSupply -= amount.min(totalSupply);
+        uint256 userEarn = userTotalEarn[onBehalfOf];
+
+        // TODO: need check rewardAmound??
+        if (userEarn <= amount) {
+            delete userTotalEarn[onBehalfOf];
+            totalSupply -= userEarn;
+        } else {
+            userTotalEarn[onBehalfOf] -= amount;
+            totalSupply -= amount;
+        }
 
         _redeemStakingToken(onBehalfOf, amount);
 
