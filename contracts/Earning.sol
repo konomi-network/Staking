@@ -3,10 +3,8 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
@@ -30,7 +28,6 @@ import "./ErrorReporter.sol";
  * User can choose to earn to these different combos.
  */
 contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
-    using Math for uint256;
     using SafeERC20 for IERC20;
 
     // The underlying earning token
