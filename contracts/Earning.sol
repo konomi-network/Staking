@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
@@ -27,7 +28,7 @@ import "./ErrorReporter.sol";
  * 
  * User can choose to earn to these different combos.
  */
-contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // The underlying earning token
@@ -216,7 +217,7 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
         currentAPY = totalApy / combo.entries.length;
     }
 
-    function deposit(uint8 comboId, uint256 amountIn) external override notEnded whenNotPaused {
+    function deposit(uint8 comboId, uint256 amountIn) external override notEnded whenNotPaused nonReentrant {
         if (combos.length <= comboId) {
             revert EarningIdNotExist();
         }
@@ -272,7 +273,7 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
         emit Deposited(msg.sender, comboId, amountIn, amountFee);
     }
 
-    function redeem(uint16 earningId) external override notEnded whenNotPaused {
+    function redeem(uint16 earningId) external override notEnded whenNotPaused nonReentrant {
         UserEarn[] storage userEarns = userEarnDetail[msg.sender];
         if (userEarns.length <= 0) {
             revert EarningIsEmpty();
