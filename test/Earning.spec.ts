@@ -420,6 +420,12 @@ describe("Earning", function () {
             expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
             expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
 
+            const cToken = MockCToken__factory.connect(await tokenCompound.getAddress());
+            const aavePool = MockAavePool__factory.connect(await aavePoolContract.getAddress());
+            // mock number change
+            await cToken.connect(deployer).mockN(1);
+            await aavePool.connect(deployer).mockN(1);
+
             await advanceBlocks(10);
             const ethAmount = BigInt(300 - calcFee(300));
             await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, tokenEthAddr, ethAmount, 0);
@@ -435,7 +441,10 @@ describe("Earning", function () {
 
             await expect(connect.redeem(1)).to.revertedWithCustomError(earningContract, 'EarningIdNotExist');
 
-            // await advanceBlocks(100000);
+            // mock number change
+            await cToken.connect(deployer).mockN(2);
+
+            await advanceBlocks(100);
             await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, tokenLinkAddr, linkAmount, 0);
             expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
             expect(await tokenLink.balanceOf(senderAddr) - linkAmount).to.eq(TEST_AMOUNT);

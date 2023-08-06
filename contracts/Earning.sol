@@ -261,7 +261,7 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
             uint256 tokenAmountIn = _calculateTokenAmount(amountIn, entry.weight);
             uint256 tokenAmountOut = _swapExactInputSingle(address(earningToken), tokenAmountIn, earnInfo.token);
 
-            // console.log(">>> deposit: ", token.earning.token, tokenAmountOut, tokenAmountIn);
+            // console.log(">>> deposit:", token.earning.token, tokenAmountOut, tokenAmountIn);
 
             IEarningPool(earnInfo.earningContract).deposit(msg.sender, tokenAmountOut);
 
@@ -302,7 +302,7 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
         // Perform deduction
         uint256 totalDeduct = userReward + userEarn.amount;
 
-        // console.log(">>> redeem: ", userReward, userEarn.amount, currentTime());
+        // console.log(">>> redeem:", userReward, userEarn.amount, currentTime());
 
         totalDeposit[earnInfo.token] -= userEarn.amount;
 
@@ -423,7 +423,7 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
             revert EarningConfigContractNotExist();
         }
 
-        // console.log(">>> supplyReward", earningId, earnInfo.token, amount);
+        // console.log(">>> supplyReward:", earningId, earnInfo.token, amount);
 
         IEarningPool(earnInfo.earningContract).deposit(msg.sender, amount);
 

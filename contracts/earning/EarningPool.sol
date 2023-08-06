@@ -95,13 +95,15 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
         if (currentTimestamp <= depositBlock) {
             return 0;
         }
-        
+
         uint256 savedAmount = userTotalEarn[onBehalfOf];
         return _calculateReward(savedAmount, currentTimestamp, depositBlock);
     }
 
     function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
         rewardAmount = amount * _calculateApy() * (currentTimestamp - depositBlock) / SECONDS_PER_YEAR / PERCENTAGE_FACTOR;
+
+        // console.log(">>> _calculateReward:", amount, rewardAmount, _calculateApy());
     }
 
     function _calculateApy() internal view virtual returns (uint256 supplyRatePerYear);
