@@ -353,20 +353,24 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
     /**
      * @dev Calculate earning fee
      * @param amountIn the amound of tokenIn
-     * @return amountFee
+     * @return fee - the fee of earning contract
      */
-    function _calculatEarningFee(uint256 amountIn) internal view returns (uint256) {
-        return amountIn * earningFee / ONE_FEER;
+    function _calculatEarningFee(uint256 amountIn) internal view returns (uint256 fee) {
+        unchecked {
+            fee = amountIn * earningFee / ONE_FEER;
+        }
     }
 
     /**
      * @dev Convert the corresponding quantity based on weight and price
      * @param amount the amound of tokenIn
      * @param earningTokenWeight the weight of earning token
-     * @return _earningTokenAmount - the amount of earning token
+     * @return earningTokenAmount - the amount of earning token
      */
-    function _calculateTokenAmount(uint256 amount, uint8 earningTokenWeight) internal pure returns (uint256) {
-        return amount * earningTokenWeight / MAX_EARNING_TOKEN_WEIGHT;
+    function _calculateTokenAmount(uint256 amount, uint8 earningTokenWeight) internal pure returns (uint256 earningTokenAmount) {
+        unchecked {
+            earningTokenAmount = amount * earningTokenWeight / MAX_EARNING_TOKEN_WEIGHT;
+        }
     }
 
     /**
