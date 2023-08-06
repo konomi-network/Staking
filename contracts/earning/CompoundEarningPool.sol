@@ -40,8 +40,9 @@ contract CompoundEarningPool is EarningPool {
     function _calculateApy() override internal view virtual returns (uint256 supplyRatePerYear) {
         uint256 supplyRatePerBlock = cToken.supplyRatePerBlock();
         uint256 compoundInterest = MathUtils.calculateCompoundedInterest(supplyRatePerBlock * BLOCKS_PER_DAY, DAYS_PER_YEAR);
-        supplyRatePerYear = (compoundInterest - WadMath.WAD) / RESERVED_RATE;
-
+        unchecked {
+            supplyRatePerYear = (compoundInterest - WadMath.WAD) / RESERVED_RATE;
+        }
         // console.log(">>> CompoundEarningPool _apy:", supplyRatePerBlock, compoundInterest, supplyRatePerYear);
     }
 

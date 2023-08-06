@@ -32,8 +32,9 @@ contract AaveEarningPool is EarningPool {
 
     function _calculateApy() override internal view virtual returns (uint256 supplyRatePerYear) {
         DataTypes.ReserveData memory data = aavePool.getReserveData(address(earningToken));
-        supplyRatePerYear = data.currentLiquidityRate / RESERVED_RATE;
-
+        unchecked {
+            supplyRatePerYear = data.currentLiquidityRate / RESERVED_RATE;
+        }
         // console.log(">>> AaveEarningPool _apy:", data.currentLiquidityRate, supplyRatePerYear);
     }
 

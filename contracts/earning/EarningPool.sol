@@ -101,7 +101,10 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
     }
 
     function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
-        rewardAmount = amount * _calculateApy() * (currentTimestamp - depositBlock) / SECONDS_PER_YEAR / PERCENTAGE_FACTOR;
+        rewardAmount = amount * _calculateApy() * (currentTimestamp - depositBlock);
+        unchecked {
+            rewardAmount = rewardAmount / SECONDS_PER_YEAR / PERCENTAGE_FACTOR;
+        }
 
         // console.log(">>> _calculateReward:", amount, rewardAmount, _calculateApy());
     }

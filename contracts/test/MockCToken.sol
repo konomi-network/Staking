@@ -10,7 +10,7 @@ import "../earning/interfaces/ICompound.sol";
 import "hardhat/console.sol";
 
 contract MockCToken is CErc20, ERC20 {
-    uint128 n;
+    uint128 n = 1;
 
     constructor() ERC20("cToken", "cToken") {}
 

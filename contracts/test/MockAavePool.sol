@@ -12,7 +12,7 @@ import "hardhat/console.sol";
 
 contract MockAavePool {
     mapping(address => address) public assetToAToken;
-    uint128 n;
+    uint128 n = 1;
 
     function addAToken(address asset, address atoken) public {
         assetToAToken[asset] = atoken;
