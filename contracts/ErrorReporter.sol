@@ -11,7 +11,6 @@ contract ErrorReporter {
     error EarningConfigReachedMaximumAmount();
 
     error EarningIdNotExist();
-    error NoPermissionToView();
     error EarningIsEmpty();
 
     error MintComptrollerRejection(uint256 errorCode);
