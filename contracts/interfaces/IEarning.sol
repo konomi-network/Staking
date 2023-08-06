@@ -52,9 +52,9 @@ interface IEarning {
     /// Events
     event Deposited(address who, uint8 comboId, uint256 amountIn, uint256 amountFee);
     event Redeemed(address who, uint16 earningId, address token, uint256 amount, uint256 reward);
-    event AddCombo(address who, Combo newCombo);
-    event RemoveCombo(address who, uint8 comboId, Combo oldCombo);
-    event ExactEarningFee(address who, uint256 amountIn, uint256 fee);
+    event AddedCombo(address who, Combo newCombo);
+    event RemovedCombo(address who, uint8 comboId, Combo oldCombo);
+    event ExactedEarningFee(address who, uint256 amountIn, uint256 fee);
     event RewardPumped(address who, uint256 extendTo);
 
     /// Methods

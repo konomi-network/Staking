@@ -297,7 +297,7 @@ describe("Earning", function () {
             const connect = earningContract.connect(deployer);
 
             const combo = await makeCombo(20);
-            await expect(connect.addCombo(combo)).to.emit(toTestContract, 'AddCombo');
+            await expect(connect.addCombo(combo)).to.emit(toTestContract, 'AddedCombo');
         });
 
         it('addCombo revert EarningConfigIncorrectWeight', async () => {
@@ -343,7 +343,7 @@ describe("Earning", function () {
             const size = 255;
             for (let i = 2; i < size; i++) {
                 const combo = await makeCombo(i * 10);
-                await expect(connect.addCombo(combo)).to.emit(toTestContract, 'AddCombo');
+                await expect(connect.addCombo(combo)).to.emit(toTestContract, 'AddedCombo');
             }
 
             const combos = await connect.listAllCombos();
@@ -362,7 +362,7 @@ describe("Earning", function () {
             expect(combos.length).to.eq(2);
 
             await expect(connect.removeCombo(99)).to.revertedWithCustomError(earningContract, 'EarningIdNotExist');
-            await expect(connect.removeCombo(1)).to.emit(toTestContract, 'RemoveCombo');
+            await expect(connect.removeCombo(1)).to.emit(toTestContract, 'RemovedCombo');
 
             combos = await connect.listAllCombos();
             expect(combos.length).to.eq(1);

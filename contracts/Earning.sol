@@ -347,7 +347,7 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
     function _collectEarningFee(uint256 amountIn) internal returns (uint256 amountFee) {
         amountFee = _calculatEarningFee(amountIn);
         earningToken.safeTransferFrom(msg.sender, address(this), amountFee);
-        emit ExactEarningFee(msg.sender, amountIn, amountFee);
+        emit ExactedEarningFee(msg.sender, amountIn, amountFee);
     }
 
     /**
@@ -442,7 +442,7 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
 
         _newCombo(combo);
 
-        emit AddCombo(msg.sender, combo);
+        emit AddedCombo(msg.sender, combo);
     }
 
     /**
@@ -452,7 +452,7 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
     function removeCombo(uint8 comboId) external onlyRole(DEFAULT_ADMIN_ROLE) {
         Combo memory oldCombo = _removeCombo(comboId);
 
-        emit RemoveCombo(msg.sender, comboId, oldCombo);
+        emit RemovedCombo(msg.sender, comboId, oldCombo);
     }
 
     /**
