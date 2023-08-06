@@ -190,13 +190,9 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
 
     /**
      * Get the earning amount that can be redeem
-     * @param who The address to check
      */
-    function listUserEarnDetails(address who) external view override returns (UserEarn[] memory) {
-        if (who != _msgSender()) {
-            revert NoPermissionToView();
-        }
-        return userEarnDetail[who];
+    function listUserEarnDetail() external view override returns (UserEarn[] memory) {
+        return userEarnDetail[msg.sender];
     }
 
     /**

@@ -68,7 +68,7 @@ interface IEarning {
     ) external;
     
     function listAllCombos() external view returns (Combo[] memory);
-    function listUserEarnDetails(address who) external view returns (UserEarn[] memory);
+    function listUserEarnDetail() external view returns (UserEarn[] memory);
 
     function averageAPY(uint8 comboId) external returns (uint256);
     

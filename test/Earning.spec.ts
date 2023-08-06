@@ -245,7 +245,7 @@ describe("Earning", function () {
 
             await expect(connect.deposit(1, 2000)).to.emit(toTestContract, 'Deposited');
 
-            const userDetail = await connect.listUserEarnDetails(await sender.getAddress());
+            const userDetail = await connect.listUserEarnDetail();
             expect(userDetail.length).to.eq(4);
 
             expect(userDetail[0].earningId).to.eq(0);
@@ -424,7 +424,7 @@ describe("Earning", function () {
             expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
             expect(await tokenEth.balanceOf(senderAddr) - ethAmount).to.eq(TEST_AMOUNT);
 
-            let userDetail = await connect.listUserEarnDetails(await sender.getAddress());
+            let userDetail = await connect.listUserEarnDetail();
             expect(userDetail.length).to.eq(1);
 
             const linkAmount = BigInt(700 - calcFee(700));
@@ -441,7 +441,7 @@ describe("Earning", function () {
             expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
             expect(await tokenLink.balanceOf(senderAddr) - linkAmount).to.eq(TEST_AMOUNT);
 
-            userDetail = await connect.listUserEarnDetails(await sender.getAddress());
+            userDetail = await connect.listUserEarnDetail();
             expect(userDetail.length).to.eq(0);
 
             await expect(connect.redeem(0)).to.revertedWithCustomError(earningContract, 'EarningIsEmpty');
