@@ -59,7 +59,6 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
     // The minimal deposit amount
     uint256 public minDepositAmount;
 
-
     // Whether the earning has ended
     bool public earningEnded;
 
@@ -67,16 +66,16 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
     uint24 public earningFee = 1000;
 
     // The fee unit
-    uint24 public constant ONE_FEER = 10000;
+    uint24 private constant ONE_FEER = 10000;
 
     // Uniswap pool fee, 0.3%
-    uint24 public constant ISWAP_POOL_FEE = 3000;
+    uint24 private constant ISWAP_POOL_FEE = 3000;
 
     // For upgrading contract versions
     uint16 public constant VERSION = 1;
 
     // Maximum number of earning per user
-    uint16 private constant MAX_EARNING_PER_USER = 1024;
+    uint16 private constant MAX_EARNING_PER_USER = 1000;
 
     // Maximum weight of earning token
     uint8 private constant MAX_EARNING_TOKEN_WEIGHT = 100;

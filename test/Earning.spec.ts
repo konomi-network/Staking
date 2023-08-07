@@ -31,6 +31,7 @@ const MIN_DEPOSIT_AMOUNT = 100n;
 const MAX_PER_USER_DEPOSIT = expandTo18Decimals(100000);
 const TEST_AMOUNT = expandTo18Decimals(10000);
 const MAX_INTEREST_RATE = 1000;
+const MAX_EARNING_PER_USER = 500;
 
 function expandTo18Decimals(n: number): bigint {
     return BigInt(n) * (10n ** 18n);
@@ -243,6 +244,36 @@ describe("Earning", function () {
 
             const tx = earningContract.connect(sender).deposit(0, MIN_DEPOSIT_AMOUNT);
             await expect(tx).to.be.revertedWithCustomError(earningContract, 'EarningEnded');
+        });
+
+        it('deposit but reached MAX_PER_USER_DEPOSIT', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const earningContract = Earning__factory.connect(testContractAddr);
+
+            const tx = earningContract.connect(sender).deposit(0, MAX_PER_USER_DEPOSIT + 1n);
+            await expect(tx).to.be.revertedWithCustomError(earningContract, 'DepositReachedMaximumAmountPerUser');
+        });
+
+        it('deposit but reached MAX_EARNING_PER_USER', async () => {
+            await transferTokens();
+
+            const testContractAddr = await toTestContract.getAddress();
+            const uniswapRouterAddr = await swapRouterContract.getAddress();
+
+            expect(await tokenEth.balanceOf(uniswapRouterAddr)).to.eq(TEST_AMOUNT);
+            expect(await tokenLink.balanceOf(uniswapRouterAddr)).to.eq(TEST_AMOUNT);
+
+            const earningContract = Earning__factory.connect(testContractAddr);
+            const connect = earningContract.connect(sender);
+
+            for (let i = 0; i < MAX_EARNING_PER_USER; i++) {
+                console.log('>>> deposit:', i);
+                await expect(connect.deposit(0, MIN_DEPOSIT_AMOUNT)).to.emit(toTestContract, 'Deposited');
+            }
+
+            const tx = connect.deposit(0, 100);
+            await expect(tx).to.be.revertedWithCustomError(earningContract, 'DepositReachedMaximumNumberPerUser');
         });
 
         it('deposit with 1000 and 2000', async () => {

@@ -29,14 +29,14 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
     /// @dev Ignoring leap years
     uint256 internal constant SECONDS_PER_YEAR = 365 days;
 
-    // Maximum percentage factor (100.00%)
-    uint16 internal constant PERCENTAGE_FACTOR = 1e4;
-
     // The maximum deposit amount a user can earn
     uint256 public maxPerUserDeposit;
 
     // The total amount of supply for this contract
     uint256 public totalSupply;
+
+    // Maximum percentage factor (100.00%)
+    uint16 internal constant PERCENTAGE_FACTOR = 1e4;
 
     // The maximum interest rate, i.e. 500 represents 5%
     uint16 public maxInterestRate;
