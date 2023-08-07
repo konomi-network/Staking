@@ -32,8 +32,9 @@ async function main() {
             ]);
         }
         
-        const ethEarningPoolContract = await deployAaveEarningPool(config.ethTokenAddress);
-        const linkEarningPoolContract = await deployCompoundEarningPool(config.linkTokenAddress);
+        const earningPoolContracts = await env.deployEarningPoolContracts(config, deployAaveEarningPool, deployCompoundEarningPool);
+
+        const combos = await env.makeCombos(config, earningPoolContracts);
 
         const contract = await deployContract(deployer, CONTRACT_NAME, []);
         await contract.initialize(
@@ -42,10 +43,12 @@ async function main() {
             config.uniswapRouterAddress,
             MAX_PER_USER_DEPOSIT,
             MIN_DEPOSIT_AMOUNT,
-            env.makeCombos(config, await ethEarningPoolContract.getAddress(), await linkEarningPoolContract.getAddress())
+            combos
         );
-        await ethEarningPoolContract.initialize(await contract.getAddress());
-        await linkEarningPoolContract.initialize(await contract.getAddress());
+
+        for (const key of Object.keys(earningPoolContracts)) {
+            await earningPoolContracts[key].initialize(await contract.getAddress());
+        }
 
         console.timeEnd(startTime);
         process.exit(0);
