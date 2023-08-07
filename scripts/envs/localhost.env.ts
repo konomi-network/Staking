@@ -1,18 +1,14 @@
 import { ethers } from 'hardhat';
 import { Contract } from 'ethers';
 import { TokenInfo, makeCombo } from '../utils/combo.util';
+import { SystemConfig } from '../utils/config.util';
 import {
     deployContract,
     deployContractWithProxy
 } from '../utils/deploy.util';
 
 export interface Config {
-    // system config
-    aavePoolAddress: string;
-    aTokenAddress: string;
-    cTokenAddress: string;
-    uniswapRouterAddress: string;
-    earningTokenAddress: string;
+    systemConfig: SystemConfig;
 
     // custom config
     ethTokenAddress: string;
@@ -35,14 +31,19 @@ export async function makeConfig(): Promise<Config> {
     
     const swapRouterContract = await deployContract(deployer, 'MockSwapRouter', []);
 
-    return {
+    const systemConfig: SystemConfig = {
         aavePoolAddress: await aavePoolContract.getAddress(),
         aTokenAddress: await aToken.getAddress(),
         cTokenAddress: await cToken.getAddress(),
+        uniswapRouterAddress: await swapRouterContract.getAddress(),
+        earningTokenAddress: await earningToken.getAddress(),
+    }
+
+    return {
+        systemConfig: systemConfig,
+        
         ethTokenAddress: await ethToken.getAddress(),
         linkTokenAddress: await linkToken.getAddress(),
-        earningTokenAddress: await earningToken.getAddress(),
-        uniswapRouterAddress: await swapRouterContract.getAddress()
     }
 }
 

@@ -14,6 +14,7 @@ async function main() {
         console.log(`>>> Deploying contracts with account: ${await deployer.getAddress()}`);
 
         const config = await env.makeConfig();
+        const systemConfig = config.systemConfig;
 
         const PLATFORM_FEE = 1000; // 1%
         const MAX_PER_USER_DEPOSIT = 10000;
@@ -22,13 +23,13 @@ async function main() {
 
         const deployAaveEarningPool = async(earningTokenAddress: string): Promise<Contract> => {
             return await deployContract(deployer, 'AaveEarningPool', [
-                config.aavePoolAddress, config.aTokenAddress, earningTokenAddress, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE
+                systemConfig.aavePoolAddress, systemConfig.aTokenAddress, earningTokenAddress, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE
             ]);
         }
 
         const deployCompoundEarningPool = async(earningTokenAddress: string): Promise<Contract> => {
             return await deployContract(deployer, 'CompoundEarningPool', [
-                config.cTokenAddress, earningTokenAddress, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE
+                systemConfig.cTokenAddress, earningTokenAddress, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE
             ]);
         }
         
@@ -38,9 +39,9 @@ async function main() {
 
         const contract = await deployContract(deployer, CONTRACT_NAME, []);
         await contract.initialize(
-            config.earningTokenAddress,
+            systemConfig.earningTokenAddress,
             PLATFORM_FEE,
-            config.uniswapRouterAddress,
+            systemConfig.uniswapRouterAddress,
             MAX_PER_USER_DEPOSIT,
             MIN_DEPOSIT_AMOUNT,
             combos
