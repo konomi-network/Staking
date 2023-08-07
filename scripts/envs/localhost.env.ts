@@ -7,13 +7,16 @@ import {
 } from '../utils/deploy.util';
 
 export interface Config {
+    // system config
     aavePoolAddress: string;
     aTokenAddress: string;
     cTokenAddress: string;
+    uniswapRouterAddress: string;
+    earningTokenAddress: string;
+
+    // custom config
     ethTokenAddress: string;
     linkTokenAddress: string;
-    earningTokenAddress: string;
-    uniswapRouterAddress: string;
 }
 
 export async function makeConfig(): Promise<Config> {
