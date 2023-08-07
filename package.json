@@ -31,7 +31,7 @@
     "lint:fix": "yarn prettier --write **/*",
     "test": "npx hardhat coverage --testfiles \"test/*.ts\" --solcoverjs .solcover.js",
     "deploy:earning": "npx hardhat run scripts/earning-deploy.ts --network ${NETWORK}",
-    "deploy:test": "npx hardhat run scripts/test-deploy.ts --network localhost",
+    "deploy:test": "npx hardhat run scripts/earning-deploy.ts --network localhost",
     "test-specific": "mocha -g"
   },
   "devDependencies": {

@@ -1,9 +1,9 @@
-import { TokenInfo, makeCombo} from './utils/combo.util';
+import { TokenInfo, makeCombo} from '../utils/combo.util';
 import { ethers } from 'hardhat';
 import {
     deployContract,
     deployContractWithProxy
-} from './utils/deploy.util';
+} from '../utils/deploy.util';
 
 export interface Config {
     aavePoolAddress: string;
