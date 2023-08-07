@@ -21,8 +21,8 @@ contract AaveEarningPool is EarningPool {
     // WadRayMath.RAY returns 1e27, which is rounded to tens of thousands, i.e. 500 represents 5%
     uint256 internal constant RESERVED_RATE = WadRayMath.RAY / PERCENTAGE_FACTOR;
 
-    constructor(address _aavePool, address _aToken, address _earningToken, uint256 _maxPerUserDeposit) 
-        EarningPool(_earningToken, _maxPerUserDeposit) {
+    constructor(address _aavePool, address _aToken, address _earningToken, uint256 _maxPerUserDeposit, uint16 _maxInterestRate) 
+        EarningPool(_earningToken, _maxPerUserDeposit, _maxInterestRate) {
         aavePool = IPool(_aavePool);
         aToken = IAToken(_aToken);
         aToken.approve(_aavePool, type(uint256).max);

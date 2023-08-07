@@ -26,30 +26,41 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
     // The mapping that tracks the total amount earned of an address
     mapping(address => uint256) public userTotalEarn;
 
+    /// @dev Ignoring leap years
+    uint256 internal constant SECONDS_PER_YEAR = 365 days;
+
+    // Maximum percentage factor (100.00%)
+    uint16 internal constant PERCENTAGE_FACTOR = 1e4;
+
     // The maximum deposit amount a user can earn
     uint256 public maxPerUserDeposit;
 
     // The total amount of supply for this contract
     uint256 public totalSupply;
 
-    // Maximum percentage factor (100.00%)
-    uint256 internal constant PERCENTAGE_FACTOR = 1e4;
+    // The maximum interest rate, i.e. 500 represents 5%
+    uint16 public maxInterestRate;
 
-    /// @dev Ignoring leap years
-    uint256 internal constant SECONDS_PER_YEAR = 365 days;
-
-    constructor(address _earningToken, uint256 _maxPerUserDeposit) {
+    constructor(address _earningToken, uint256 _maxPerUserDeposit, uint16 _maxInterestRate) {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         earningToken = IERC20(_earningToken);
 
         maxPerUserDeposit = _maxPerUserDeposit;
+
+        maxInterestRate = _maxInterestRate;
     }
 
     function initialize(address _invoker) public initializer {
         _setupRole(POOL_ROLE, _invoker);
 
         __AccessControl_init_unchained();
+    }
+
+    function setMaxInterestRate(uint16 _maxInterestRate) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        maxInterestRate = _maxInterestRate;
+
+        emit UpdatedMaxInterestRate(msg.sender, _maxInterestRate);
     }
 
     function deposit(address onBehalfOf, uint256 amount) external override nonReentrant onlyRole(POOL_ROLE) {
@@ -95,7 +106,7 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
     }
 
     function apy() external view returns (uint256 supplyRatePerYear) {
-        supplyRatePerYear = _calculateApy();
+        supplyRatePerYear = _fixedApy();
     }
 
     function reward(address onBehalfOf, uint256 depositBlock) external override view returns (uint256) {
@@ -109,12 +120,16 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
     }
 
     function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
-        rewardAmount = amount * _calculateApy() * (currentTimestamp - depositBlock);
+        rewardAmount = amount * _fixedApy() * (currentTimestamp - depositBlock);
         unchecked {
             rewardAmount = rewardAmount / SECONDS_PER_YEAR / PERCENTAGE_FACTOR;
         }
 
-        // console.log(">>> _calculateReward:", amount, rewardAmount, _calculateApy());
+        // console.log(">>> _calculateReward:", rewardAmount, _calculateApy(), _fixedApy());
+    }
+
+    function _fixedApy() internal view returns (uint256 supplyRatePerYear) {
+        supplyRatePerYear = _calculateApy().min(maxInterestRate);
     }
 
     function _calculateApy() internal view virtual returns (uint256 supplyRatePerYear);

@@ -20,12 +20,17 @@ import {
 import {
     Earning__factory
 } from '../typechain-types/factories/contracts';
+import {
+    AaveEarningPool__factory,
+    CompoundEarningPool__factory,
+} from '../typechain-types/factories/contracts/earning';
 
 // platform fee, i.e. 1000 represents 1%
 const PLATFORM_FEE = 1000;
 const MIN_DEPOSIT_AMOUNT = 100n;
 const MAX_PER_USER_DEPOSIT = expandTo18Decimals(100000);
 const TEST_AMOUNT = expandTo18Decimals(10000);
+const MAX_INTEREST_RATE = 1000;
 
 function expandTo18Decimals(n: number): bigint {
     return BigInt(n) * (10n ** 18n);
@@ -49,8 +54,8 @@ describe("Earning", function () {
     let tokenAave: Contract;
     let tokenCompound: Contract;
 
-    let ethEarningPoolContract: Contract;
-    let linkEarningPoolContract: Contract;
+    let aaveEarningPoolContract: Contract;
+    let compoundEarningPoolContract: Contract;
 
     let aavePoolContract: Contract;
 
@@ -99,13 +104,13 @@ describe("Earning", function () {
         await allowanceToken(sender, tokenEth, uniswapRouterAddr);
         await allowanceToken(sender, tokenLink, uniswapRouterAddr);
         
-        const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
-        await allowanceToken(deployer, tokenEth, ethEarningPoolContractAddr, false);
-        await allowanceToken(sender, tokenEth, ethEarningPoolContractAddr);
+        const aaveEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
+        await allowanceToken(deployer, tokenEth, aaveEarningPoolContractAddr, false);
+        await allowanceToken(sender, tokenEth, aaveEarningPoolContractAddr);
 
-        const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
-        await allowanceToken(deployer, tokenLink, linkEarningPoolContractAddr, false);
-        await allowanceToken(sender, tokenLink, linkEarningPoolContractAddr);
+        const compoundEarningPoolContractAddr = await compoundEarningPoolContract.getAddress();
+        await allowanceToken(deployer, tokenLink, compoundEarningPoolContractAddr, false);
+        await allowanceToken(sender, tokenLink, compoundEarningPoolContractAddr);
     }
 
     beforeEach(async () => {
@@ -138,19 +143,19 @@ describe("Earning", function () {
         await aavePoolConnect.addAToken(tokenEthAddr, tokenAaveAddr);
         await aavePoolConnect.addAToken(tokenLinkAddr, tokenAaveAddr);
 
-        ethEarningPoolContract = await deployContractWithDeployer(
+        aaveEarningPoolContract = await deployContractWithDeployer(
             deployer,
             'AaveEarningPool', 
-            [aavePoolAddr, tokenAaveAddr, tokenEthAddr, MAX_PER_USER_DEPOSIT],
+            [aavePoolAddr, tokenAaveAddr, tokenEthAddr, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE],
             isSilent);
-        const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
+        const ethEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
 
-        linkEarningPoolContract = await deployContractWithDeployer(
+        compoundEarningPoolContract = await deployContractWithDeployer(
             deployer,
             'CompoundEarningPool', 
-            [tokenCompoundAddr, tokenLinkAddr, MAX_PER_USER_DEPOSIT],
+            [tokenCompoundAddr, tokenLinkAddr, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE],
             isSilent);
-        const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
+        const linkEarningPoolContractAddr = await compoundEarningPoolContract.getAddress();
 
         const DEFAULT_COMBOS = [{
                 creditRating: 0,
@@ -206,8 +211,8 @@ describe("Earning", function () {
         );
 
         await toTestContract.initialize(tokenAddr, PLATFORM_FEE, uniswapRouterAddr, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS);
-        await ethEarningPoolContract.initialize(await toTestContract.getAddress());
-        await linkEarningPoolContract.initialize(await toTestContract.getAddress());
+        await aaveEarningPoolContract.initialize(await toTestContract.getAddress());
+        await compoundEarningPoolContract.initialize(await toTestContract.getAddress());
     });
 
     describe('Deposited', () => {
@@ -215,10 +220,29 @@ describe("Earning", function () {
             const testContractAddr = await toTestContract.getAddress();
 
             const earningContract = Earning__factory.connect(testContractAddr);
-            const connect = earningContract.connect(sender);
 
-            const tx = connect.deposit(0, MIN_DEPOSIT_AMOUNT - 1n);
+            const tx = earningContract.connect(sender).deposit(0, MIN_DEPOSIT_AMOUNT - 1n);
             await expect(tx).to.be.revertedWithCustomError(earningContract, 'DepositMustBeExceedMinimumAmount');
+        });
+
+        it('deposit but earning id not exist', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const earningContract = Earning__factory.connect(testContractAddr);
+
+            const tx = earningContract.connect(sender).deposit(99, MIN_DEPOSIT_AMOUNT);
+            await expect(tx).to.be.revertedWithCustomError(earningContract, 'EarningIdNotExist');
+        });
+
+        it('deposit but earning ended', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const earningContract = Earning__factory.connect(testContractAddr);
+
+            await earningContract.connect(deployer).endEarning();
+
+            const tx = earningContract.connect(sender).deposit(0, MIN_DEPOSIT_AMOUNT);
+            await expect(tx).to.be.revertedWithCustomError(earningContract, 'EarningEnded');
         });
 
         it('deposit with 1000 and 2000', async () => {
@@ -264,8 +288,8 @@ describe("Earning", function () {
 
     describe('Combo add and remove test', () => {
         const makeCombo = async (i: number) => {
-            const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
-            const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
+            const ethEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
+            const linkEarningPoolContractAddr = await compoundEarningPoolContract.getAddress();
             return {
                 creditRating: 0,
                 entries: [{
@@ -306,8 +330,8 @@ describe("Earning", function () {
             const earningContract = Earning__factory.connect(testContractAddr);
             const connect = earningContract.connect(deployer);
 
-            const ethEarningPoolContractAddr = await ethEarningPoolContract.getAddress();
-            const linkEarningPoolContractAddr = await linkEarningPoolContract.getAddress();
+            const ethEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
+            const linkEarningPoolContractAddr = await compoundEarningPoolContract.getAddress();
 
             const errorCombo = {
                 creditRating: 4,
@@ -392,7 +416,23 @@ describe("Earning", function () {
             // mock dynamic change AP*
             await cToken.connect(deployer).mockN(2);
             await aavePool.connect(deployer).mockN(2);
-            expect(await connect.averageAPY(0)).to.eq(653);
+            expect(await connect.averageAPY(0)).to.eq(399);
+
+            const aaveEarningPool = AaveEarningPool__factory.connect(await aaveEarningPoolContract.getAddress());
+            await aaveEarningPool.connect(deployer).setMaxInterestRate(100);
+            expect(await connect.averageAPY(0)).to.eq(365);
+
+            const compoundEarningPool = CompoundEarningPool__factory.connect(await compoundEarningPoolContract.getAddress());
+            await compoundEarningPool.connect(deployer).setMaxInterestRate(100);
+            expect(await connect.averageAPY(0)).to.eq(50);
+        });
+
+        it('averageAPY but earning id not exist', async() => {
+            const testContractAddr = await toTestContract.getAddress();
+            const earningContract = Earning__factory.connect(testContractAddr);
+
+            const tx = earningContract.connect(sender).averageAPY(99);
+            await expect(tx).to.revertedWithCustomError(earningContract, 'EarningIdNotExist');
         });
     })
 
@@ -410,6 +450,7 @@ describe("Earning", function () {
             const SUPPLY_AMOUNT = 1000;
             await expect(earningContract.connect(deployer).supplyReward(0, SUPPLY_AMOUNT)).to.emit(toTestContract, 'RewardPumped');
             await expect(earningContract.connect(deployer).supplyReward(1, SUPPLY_AMOUNT)).to.emit(toTestContract, 'RewardPumped');
+            await expect(earningContract.connect(deployer).supplyReward(99, SUPPLY_AMOUNT)).to.revertedWithCustomError(earningContract, 'EarningConfigContractNotExist');
 
             const connect = earningContract.connect(sender);
 

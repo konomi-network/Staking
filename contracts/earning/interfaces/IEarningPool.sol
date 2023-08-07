@@ -5,6 +5,7 @@ interface IEarningPool {
     /// Events
     event Deposited(address who, address token, uint256 amount);
     event Redeemed(address who, address token, uint256 amount);
+    event UpdatedMaxInterestRate(address who, uint16 rate);
 
     /// Methods
     function apy() external view returns (uint256);
