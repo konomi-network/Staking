@@ -26,15 +26,13 @@ async function main() {
         console.log('Before balance:', web3.utils.fromWei(await web3.eth.getBalance(await deployer.getAddress()), 'ether'));
 
         const deployAaveEarningPool = async(earningTokenAddress: string): Promise<Contract> => {
-            return await deployContract(deployer, 'AaveEarningPool', [
-                systemConfig.aavePoolAddress, systemConfig.aTokenAddress, earningTokenAddress, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE
-            ]);
+            const args = [systemConfig.aavePoolAddress, systemConfig.aTokenAddress, earningTokenAddress, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE];
+            return await deployContract(deployer, 'AaveEarningPool', args);
         }
 
         const deployCompoundEarningPool = async(earningTokenAddress: string): Promise<Contract> => {
-            return await deployContract(deployer, 'CompoundEarningPool', [
-                systemConfig.cTokenAddress, earningTokenAddress, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE
-            ]);
+            const args = [systemConfig.cTokenAddress, earningTokenAddress, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE];
+            return await deployContract(deployer, 'CompoundEarningPool', args);
         }
         
         const earningPoolContracts = await env.deployEarningPoolContracts(config, deployAaveEarningPool, deployCompoundEarningPool);
