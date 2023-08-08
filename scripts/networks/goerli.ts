@@ -42,14 +42,14 @@ export async function makeCombos(config: Config, earningPoolContracts: {[key: st
         id: 0,
         name: 'WETH',
         token: config.ethTokenAddress,
-        earningPoolContractAddress: await earningPoolContracts.WETH.getAddress(), // 0xaD3B60878BAEa5f1eF6C294AB55cdc99778aCa4D
+        earningContract: await earningPoolContracts.WETH.getAddress(), // 0xaD3B60878BAEa5f1eF6C294AB55cdc99778aCa4D
     });
 
     const tokenLink: ComboEntry = makeCombo(70, {
         id: 1,
         name: 'DAI',
         token: config.daiTokenAddress,
-        earningPoolContractAddress: await earningPoolContracts.DAI.getAddress(), // 0x053BfB8780349D2DD9CaE289146738B160d20615
+        earningContract: await earningPoolContracts.DAI.getAddress(), // 0x053BfB8780349D2DD9CaE289146738B160d20615
     });
 
     return [{

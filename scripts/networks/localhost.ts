@@ -59,14 +59,14 @@ export async function makeCombos(config: Config, earningPoolContracts: {[key: st
         id: 0,
         name: 'WETH',
         token: config.ethTokenAddress,
-        earningPoolContractAddress: await earningPoolContracts.WETH.getAddress(),
+        earningContract: await earningPoolContracts.WETH.getAddress(),
     });
 
     const tokenLink: ComboEntry = makeCombo(70, {
         id: 1,
         name: 'LINK',
         token: config.linkTokenAddress,
-        earningPoolContractAddress: await earningPoolContracts.LINK.getAddress(),
+        earningContract: await earningPoolContracts.LINK.getAddress(),
     });
 
     return [{

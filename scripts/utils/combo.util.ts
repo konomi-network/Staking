@@ -2,7 +2,7 @@ export interface TokenInfo {
     id: number;
     name: string;
     token: string;
-    earningPoolContractAddress: string;
+    earningContract: string;
 }
 
 export interface ComboEntry {
