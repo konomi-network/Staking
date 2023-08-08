@@ -1,5 +1,5 @@
 import { Contract } from 'ethers';
-import { TokenInfo, makeCombo } from '../utils/combo.util';
+import { Combo, ComboEntry, makeCombo } from '../utils/combo.util';
 import { SystemConfig } from '../utils/config.util';
 
 export interface Config {
@@ -7,7 +7,7 @@ export interface Config {
 
     // custom config
     ethTokenAddress: string;
-    linkTokenAddress: string;
+    daiTokenAddress: string;
 }
 
 export async function makeConfig(): Promise<Config> {
@@ -26,37 +26,34 @@ export async function makeConfig(): Promise<Config> {
         systemConfig: systemConfig,
         
         ethTokenAddress: '0xCCB14936C2E000ED8393A571D15A2672537838Ad', // WETH
-        linkTokenAddress: '0x2899a03ffDab5C90BADc5920b4f53B0884EB13cC',// DAI
+        daiTokenAddress: '0x2899a03ffDab5C90BADc5920b4f53B0884EB13cC',// DAI
     }
 }
 
 export async function deployEarningPoolContracts(config: Config, deployAaveEarningPool: Function, deployCompoundEarningPool: Function): Promise<{[key: string]: Contract}> {
     return {
         'WETH': await deployAaveEarningPool(config.ethTokenAddress),
-        'LINK': await deployCompoundEarningPool(config.linkTokenAddress),
+        'DAI': await deployCompoundEarningPool(config.daiTokenAddress),
     }
 }
 
-export async function makeCombos(config: Config, earningPoolContracts: {[key: string]: Contract}) {
-    const tokenWeth: TokenInfo = {
+export async function makeCombos(config: Config, earningPoolContracts: {[key: string]: Contract}): Promise<Combo[]> {
+    const tokenWeth: ComboEntry = makeCombo(30, {
         id: 0,
-        tokenName: 'WETH',
-        tokenAddress: config.ethTokenAddress,
-        earningPoolContractAddress: await earningPoolContracts.WETH.getAddress(),
-    }
+        name: 'WETH',
+        token: config.ethTokenAddress,
+        earningPoolContractAddress: '0xaD3B60878BAEa5f1eF6C294AB55cdc99778aCa4D'//await earningPoolContracts.WETH.getAddress(),
+    });
 
-    const tokenLink: TokenInfo = {
+    const tokenLink: ComboEntry = makeCombo(70, {
         id: 1,
-        tokenName: 'LINK',
-        tokenAddress: config.linkTokenAddress,
-        earningPoolContractAddress: await earningPoolContracts.LINK.getAddress(),
-    }
+        name: 'DAI',
+        token: config.daiTokenAddress,
+        earningPoolContractAddress: '0x053BfB8780349D2DD9CaE289146738B160d20615'//await earningPoolContracts.DAI.getAddress(),
+    });
 
     return [{
         creditRating: 0,
-        entries: [
-            makeCombo(30, tokenWeth),
-            makeCombo(70, tokenLink),
-        ]
+        entries: [tokenWeth, tokenLink]
     }]    
 }

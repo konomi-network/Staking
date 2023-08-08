@@ -1,5 +1,6 @@
 import { ethers, network } from 'hardhat';
 import { Contract } from 'ethers';
+import { Web3 } from 'web3';
 import { deployContract } from './utils/deploy.util';
 
 const CONTRACT_NAME = 'Earning';
@@ -20,6 +21,9 @@ async function main() {
         const MAX_PER_USER_DEPOSIT = 10000;
         const MIN_DEPOSIT_AMOUNT = 1000;
         const MAX_INTEREST_RATE = 1000; // 10%;
+
+        const web3 = new Web3(network.provider);
+        console.log('balance:', web3.utils.fromWei(await web3.eth.getBalance(await deployer.getAddress()), 'ether'));
 
         const deployAaveEarningPool = async(earningTokenAddress: string): Promise<Contract> => {
             return await deployContract(deployer, 'AaveEarningPool', [

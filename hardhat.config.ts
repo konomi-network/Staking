@@ -22,7 +22,7 @@ const config: HardhatUserConfig = {
     goerli: {
       url: `https://eth-goerli.g.alchemy.com/v2/${process.env.GOERLI_TESTNET_DEPLOYER_API_KEY}`,
       chainId: 5,
-      // gasPrice: 30_000_000_000,
+      gasPrice: 30_000_000_000,
       accounts: [`0x${process.env.GOERLI_TESTNET_DEPLOYER_PRIVATE_KEY}`],
     }
   },

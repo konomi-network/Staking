@@ -1,18 +1,23 @@
 export interface TokenInfo {
     id: number;
-    tokenName: string;
-    tokenAddress: string;
+    name: string;
+    token: string;
     earningPoolContractAddress: string;
 }
 
-export function makeCombo(weight: number, token: TokenInfo) {
+export interface ComboEntry {
+    weight: number;
+    earning: TokenInfo;
+}
+
+export interface Combo {
+    creditRating: number;
+    entries: ComboEntry[];
+}
+
+export function makeCombo(weight: number, tokenInfo: TokenInfo): ComboEntry {
     return {
         weight: weight,
-        earning: {
-            id: token.id,
-            name: token.tokenName,
-            token: token.tokenAddress,
-            earningContract: token.earningPoolContractAddress,
-        }
+        earning: tokenInfo
     };
 }

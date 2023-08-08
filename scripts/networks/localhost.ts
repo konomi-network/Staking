@@ -1,6 +1,6 @@
 import { ethers } from 'hardhat';
 import { Contract } from 'ethers';
-import { TokenInfo, makeCombo } from '../utils/combo.util';
+import { Combo, ComboEntry, makeCombo } from '../utils/combo.util';
 import { SystemConfig } from '../utils/config.util';
 import {
     deployContract,
@@ -54,26 +54,23 @@ export async function deployEarningPoolContracts(config: Config, deployAaveEarni
     }
 }
 
-export async function makeCombos(config: Config, earningPoolContracts: {[key: string]: Contract}) {
-    const tokenWeth: TokenInfo = {
+export async function makeCombos(config: Config, earningPoolContracts: {[key: string]: Contract}): Promise<Combo[]> {
+    const tokenWeth: ComboEntry = makeCombo(30, {
         id: 0,
-        tokenName: 'WETH',
-        tokenAddress: config.ethTokenAddress,
+        name: 'WETH',
+        token: config.ethTokenAddress,
         earningPoolContractAddress: await earningPoolContracts.WETH.getAddress(),
-    }
+    });
 
-    const tokenLink: TokenInfo = {
+    const tokenLink: ComboEntry = makeCombo(70, {
         id: 1,
-        tokenName: 'LINK',
-        tokenAddress: config.linkTokenAddress,
+        name: 'LINK',
+        token: config.linkTokenAddress,
         earningPoolContractAddress: await earningPoolContracts.LINK.getAddress(),
-    }
+    });
 
     return [{
         creditRating: 0,
-        entries: [
-            makeCombo(30, tokenWeth),
-            makeCombo(70, tokenLink),
-        ]
+        entries: [tokenWeth, tokenLink]
     }]    
 }
