@@ -23,7 +23,7 @@ async function main() {
         const MAX_INTEREST_RATE = 1000; // 10%;
 
         const web3 = new Web3(network.provider);
-        console.log('balance:', web3.utils.fromWei(await web3.eth.getBalance(await deployer.getAddress()), 'ether'));
+        console.log('Before balance:', web3.utils.fromWei(await web3.eth.getBalance(await deployer.getAddress()), 'ether'));
 
         const deployAaveEarningPool = async(earningTokenAddress: string): Promise<Contract> => {
             return await deployContract(deployer, 'AaveEarningPool', [
@@ -55,6 +55,7 @@ async function main() {
             await earningPoolContracts[key].initialize(await contract.getAddress());
         }
 
+        console.log('After balance:', web3.utils.fromWei(await web3.eth.getBalance(await deployer.getAddress()), 'ether'));
         console.timeEnd(startTime);
         process.exit(0);
     } catch (error) {
