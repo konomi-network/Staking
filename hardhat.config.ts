@@ -23,7 +23,13 @@ const config: HardhatUserConfig = {
       url: `https://eth-goerli.g.alchemy.com/v2/${process.env.GOERLI_TESTNET_DEPLOYER_API_KEY}`,
       chainId: 5,
       gasPrice: 30_000_000_000,
-      accounts: [`0x${process.env.GOERLI_TESTNET_DEPLOYER_PRIVATE_KEY}`],
+      accounts: [`0x${process.env.DEPLOYER_PRIVATE_KEY}`],
+    },
+    sepolia: {
+      url: `https://eth-sepolia.g.alchemy.com/v2/${process.env.SEPOLIA_TESTNET_DEPLOYER_API_KEY}`,
+      chainId: 11155111,
+      gasPrice: 30_000_000_000,
+      accounts: [`0x${process.env.DEPLOYER_PRIVATE_KEY}`],
     }
   },
   solidity: {
