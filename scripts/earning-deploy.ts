@@ -6,12 +6,12 @@ const CONTRACT_NAME = 'Earning';
 
 async function main() {
     try {
-        const startTime = `>>> Deploy contract to \x1b[33m${network.name}\x1b[0m network`;
+        const startTime = `Deploy contract to \x1b[33m${network.name}\x1b[0m network`;
         console.time(startTime);
 
-        const env = require(`./envs/${network.name}.env`)
+        const env = require(`./networks/${network.name}`)
         const [deployer] = await ethers.getSigners();
-        console.log(`>>> Deploying contracts with account: ${await deployer.getAddress()}`);
+        console.log(`Deploying contracts with account: \x1b[33m${await deployer.getAddress()}\x1b[0m`);
 
         const config = await env.makeConfig();
         const systemConfig = config.systemConfig;
