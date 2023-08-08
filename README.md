@@ -17,12 +17,6 @@ set +o allexport
 # compile
 yarn compile
 
-# deploy, see package.json for the following pattern: deploy:<...>
-npm run deploy:<...>
-```
-
-Some util commands:
-
-```bash
-npx hardhat run scripts/staking-deploy.ts --network ${NETWORK}
+# deploy
+NETWORK=$NETWORK npm run deploy
 ```
