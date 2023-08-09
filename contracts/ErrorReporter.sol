@@ -21,4 +21,6 @@ contract ErrorReporter {
     error DepositReachedMaximumAmountPerUser();
     error DepositAmountMustBeGreaterThanZero();
     error RedeemAmountMustBeGreaterThanZero();
+
+    error ReentrancyGuardReentrantCall();
 }
