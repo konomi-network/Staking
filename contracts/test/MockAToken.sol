@@ -22,4 +22,9 @@ contract MockAToken is ERC20Upgradeable {
     function burn(address account, uint256 amount) public {
         _burn(account, amount);
     }
+
+
+    function upgradeTo(address newImplementation) public pure {
+        newImplementation; // silence the warning
+    }
 }

@@ -146,4 +146,4 @@ artifacts
 .env.test
 .env.main
 
-.deploy-cache.json
+.deploy-cache.*.json

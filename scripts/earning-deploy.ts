@@ -1,7 +1,7 @@
 import { ethers, network } from 'hardhat';
 import { Contract } from 'ethers';
 import { Web3 } from 'web3';
-import { deployContract } from './utils/deploy.util';
+import { deployContract, deployContractWithProxy } from './utils/deploy.util';
 
 const CONTRACT_NAME = 'Earning';
 
@@ -39,15 +39,14 @@ async function main() {
 
         const combos = await env.makeCombos(config, earningPoolContracts);
 
-        const contract = await deployContract(deployer, CONTRACT_NAME, []);
-        await contract.initialize(
+        const contract = await deployContractWithProxy(deployer, CONTRACT_NAME, [
             systemConfig.earningTokenAddress,
             PLATFORM_FEE,
             systemConfig.uniswapRouterAddress,
             MAX_PER_USER_DEPOSIT,
             MIN_DEPOSIT_AMOUNT,
             combos
-        );
+        ]);
 
         for (const key of Object.keys(earningPoolContracts)) {
             await earningPoolContracts[key].initialize(await contract.getAddress());
