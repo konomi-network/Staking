@@ -28,7 +28,6 @@ const config: HardhatUserConfig = {
     sepolia: {
       url: `https://eth-sepolia.g.alchemy.com/v2/${process.env.SEPOLIA_TESTNET_DEPLOYER_API_KEY}`,
       chainId: 11155111,
-      gasPrice: 50_000_000_000,
       accounts: [`0x${process.env.DEPLOYER_PRIVATE_KEY}`],
     }
   },
