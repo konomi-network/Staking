@@ -4,16 +4,17 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import "./interfaces/IEarningPool.sol";
 
 import "../ErrorReporter.sol";
+import "../ReentrancyGuard.sol";
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
-abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgradeable, ReentrancyGuard {
+abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgradeable, UUPSUpgradeable, ReentrancyGuard {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
@@ -40,8 +41,11 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
 
     // The maximum interest rate, i.e. 500 represents 5%
     uint16 public maxInterestRate;
-
-    constructor(address _earningToken, uint256 _maxPerUserDeposit, uint16 _maxInterestRate) {
+    
+    function __EarningPool_init(
+        address _earningToken,
+        uint256 _maxPerUserDeposit,
+        uint16 _maxInterestRate) internal onlyInitializing {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         earningToken = IERC20(_earningToken);
@@ -49,12 +53,13 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
         maxPerUserDeposit = _maxPerUserDeposit;
 
         maxInterestRate = _maxInterestRate;
+
+        __ReentrancyGuard_init();
+        __AccessControl_init_unchained();
     }
 
-    function initialize(address _invoker) public initializer {
+    function setInvoker(address _invoker) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setupRole(POOL_ROLE, _invoker);
-
-        __AccessControl_init_unchained();
     }
 
     function setMaxInterestRate(uint16 _maxInterestRate) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -143,5 +148,17 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
      */
     function currentTime() public view returns (uint256) {
         return block.number;
+    }
+
+    /**
+     *  Used to control authorization of upgrade methods
+     */
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        view
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        newImplementation; // silence the warning
     }
 }

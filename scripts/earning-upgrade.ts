@@ -16,7 +16,7 @@ async function main() {
         const web3 = new Web3(network.provider);
         console.log('Before balance:', web3.utils.fromWei(await web3.eth.getBalance(await deployer.getAddress()), 'ether'));
 
-        const oldContractAddress = '0x54A2Ad986357190559B17aA19Da2Cb961b8374eB';
+        const oldContractAddress = '0x562c3078e2b6C5b65142248F918ba19b7Eb35e40';
         await UpgradeContract(deployer, CONTRACT_NAME, oldContractAddress);
 
         console.log('After balance:', web3.utils.fromWei(await web3.eth.getBalance(await deployer.getAddress()), 'ether'));

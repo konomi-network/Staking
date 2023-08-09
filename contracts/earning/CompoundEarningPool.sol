@@ -24,8 +24,13 @@ contract CompoundEarningPool is EarningPool {
 
     uint256 internal constant RESERVED_RATE = WadMath.WAD / PERCENTAGE_FACTOR;
 
-    constructor(address _cToken, address _earningToken, uint256 _maxPerUserDeposit, uint16 _maxInterestRate) 
-        EarningPool(_earningToken, _maxPerUserDeposit, _maxInterestRate) {
+    function initialize(
+        address _cToken,
+        address _earningToken,
+        uint256 _maxPerUserDeposit,
+        uint16 _maxInterestRate) external initializer {
+        __EarningPool_init(_earningToken, _maxPerUserDeposit, _maxInterestRate);
+
         // Create a reference to the corresponding cToken contract, like cDAI
         cToken = CErc20(_cToken);
     }

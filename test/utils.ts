@@ -33,26 +33,6 @@ export async function deployContractWithDeployer(
     return contract;
 }
 
-export async function deployContractWithUpgradesDeployer(
-    contractName: string,
-    contractFactory: ContractFactory,
-    args: unknown[],
-    isSilent?: boolean,
-): Promise<Contract> {
-    if (!isSilent) {
-        console.log(`>>> deploy contract: ${contractName} with (${args.length}) args:`, ...args);
-    }
-
-    const contract = await upgrades.deployProxy(contractFactory, args, {
-        kind: 'uups'
-    });
-
-    if (!isSilent) {
-        console.log(`>> contract ${contractName} deployed with address ${await contract.getAddress()}`);
-    }
-    return contract;
-}
-
 export async function deployContractWithProxyDeployer(
     deployer: Signer,
     contractName: string,
@@ -64,7 +44,7 @@ export async function deployContractWithProxyDeployer(
     }
 
     const contractFactory = await ethers.getContractFactory(contractName, deployer);
-    const contract = await upgrades.deployProxy(contractFactory, args);
+    const contract = await upgrades.deployProxy(contractFactory, args, { kind: 'uups' });
 
     if (!isSilent) {
         console.log(`>> contract ${contractName} deployed with address ${await contract.getAddress()}`);
