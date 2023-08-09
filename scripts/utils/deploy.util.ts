@@ -18,19 +18,21 @@ export async function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function cacheDeployContract(deployer: Signer, contractName: string, callback: () => Promise<Contract>): Promise<Contract> {
+export async function cacheDeployContract(deployer: Signer, contractName: string, args: any[],
+  callback: (args: any[]) => Promise<Contract>): Promise<Contract> {
   const json = load(cachePath);
+  const cacheName = [contractName, ...args].join('|');
 
-  if (json[contractName] !== undefined) {
-    console.log(`Contract \x1b[33m${contractName}\x1b[0m already deployed to \x1b[33m${json[contractName]}\x1b[0m`);
+  if (json[cacheName] !== undefined) {
+    console.log(`Contract \x1b[33m${contractName}\x1b[0m already deployed to \x1b[33m${json[cacheName]}\x1b[0m`);
     const artifact = await artifacts.readArtifact(contractName);
-    return new Contract(json[contractName], artifact.abi, deployer);
+    return new Contract(json[cacheName], artifact.abi, deployer);
   }
 
-  const contract = await callback();
+  const contract = await callback(args);
   const contractAddr = await contract.getAddress();
   console.log(`Deployed contract \x1b[33m${contractName}\x1b[0m to address: \x1b[33m${contractAddr}\x1b[0m`);
-  json[contractName] = contractAddr;
+  json[cacheName] = contractAddr;
   write(json, cachePath);
 
   await delay(40_000);
@@ -38,7 +40,7 @@ export async function cacheDeployContract(deployer: Signer, contractName: string
 }
 
 export async function deployContractWithProxy(deployer: Signer, contractName: string, args: unknown[]): Promise<Contract> {
-  return await cacheDeployContract(deployer, contractName, async () => {
+  return await cacheDeployContract(deployer, contractName, args, async (args) => {
     console.log(`Deploy contract: ${contractName} with args:`, ...args);
 
     const contractFactory = await ethers.getContractFactory(contractName, deployer);
@@ -50,7 +52,7 @@ export async function deployContractWithProxy(deployer: Signer, contractName: st
 }
 
 export async function deployContract(deployer: Signer, contractName: string, args: unknown[]): Promise<Contract> {
-  return await cacheDeployContract(deployer, contractName, async () => {
+  return await cacheDeployContract(deployer, contractName, args, async (args) => {
     console.log(`deploy contract: ${contractName} with args:`, ...args);
 
     const contractFactory = await ethers.getContractFactory(contractName, deployer);
