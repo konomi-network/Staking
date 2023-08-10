@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { Contract, Signer } from 'ethers';
 import { ethers, upgrades, artifacts, network } from 'hardhat';
+import Web3 from 'web3';
 
 function load(path: string): any {
   if (!fs.existsSync(path)) {
@@ -15,6 +16,44 @@ function write(cache: any, path: string) {
 
 export async function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export async function tryExecute(callback: (deployer: Signer) => void) {
+  const [deployer] = await ethers.getSigners();
+  const beforeBalance = await balanceOf(await deployer.getAddress());
+  console.log('Before balance:', beforeBalance);
+
+  try {
+    const startTime = `Deploy contract to \x1b[33m${network.name}\x1b[0m network`;
+    console.time(startTime);
+
+    callback(deployer);
+
+    const afterBalance = await balanceOf(await deployer.getAddress());
+    console.log('After balance:', afterBalance, Number(afterBalance) - Number(beforeBalance));
+    console.timeEnd(startTime);
+    process.exit(0);
+  } catch (error) {
+    console.error(`tryExecute failed by: ${error}`);
+    const afterBalance = await balanceOf(await deployer.getAddress());
+    console.log('After balance:', afterBalance, Number(afterBalance) - Number(beforeBalance));
+    process.exit(1);
+  }
+}
+
+export async function balanceOf(who: string) {
+  const web3 = new Web3(network.provider);
+  return web3.utils.fromWei(await web3.eth.getBalance(who), 'ether');
+}
+
+export async function loadCacheContract(deployer: Signer, contractName: string, args: any[]): Promise<Contract> {
+  const cachePath = `./.deploy-cache.${network.name}.json`;
+
+  const json = load(cachePath);
+  const cacheName = [contractName, ...args].join('|');
+
+  const artifact = await artifacts.readArtifact(contractName);
+  return new Contract(json[cacheName], artifact.abi, deployer);
 }
 
 export async function cacheDeployContract(deployer: Signer, contractName: string, args: any[],

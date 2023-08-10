@@ -1,17 +1,11 @@
-import { ethers, network } from 'hardhat';
+import { network } from 'hardhat';
 import { Contract } from 'ethers';
-import { Web3 } from 'web3';
-import { deployContract, deployContractWithProxy } from './utils/deploy.util';
-
-const CONTRACT_NAME = 'Earning';
+import { tryExecute, deployContractWithProxy } from './utils/deploy.util';
 
 async function main() {
-    try {
-        const startTime = `Deploy contract to \x1b[33m${network.name}\x1b[0m network`;
-        console.time(startTime);
-
+    await tryExecute(async (deployer) => {
         const env = require(`./networks/${network.name}`)
-        const [deployer] = await ethers.getSigners();
+
         console.log(`Deploying contracts with account: \x1b[33m${await deployer.getAddress()}\x1b[0m`);
 
         const config = await env.makeConfig();
@@ -21,9 +15,6 @@ async function main() {
         const MAX_PER_USER_DEPOSIT = 10000;
         const MIN_DEPOSIT_AMOUNT = 1000;
         const MAX_INTEREST_RATE = 1000; // 10%;
-
-        const web3 = new Web3(network.provider);
-        console.log('Before balance:', web3.utils.fromWei(await web3.eth.getBalance(await deployer.getAddress()), 'ether'));
 
         const deployAaveEarningPool = async(earningTokenAddress: string): Promise<Contract> => {
             const args = [systemConfig.aavePoolAddress, systemConfig.aTokenAddress, earningTokenAddress, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE];
@@ -39,7 +30,7 @@ async function main() {
 
         const combos = await env.makeCombos(config, earningPoolContracts);
 
-        const contract = await deployContractWithProxy(deployer, CONTRACT_NAME, [
+        const contract = await deployContractWithProxy(deployer, 'Earning', [
             systemConfig.earningTokenAddress,
             PLATFORM_FEE,
             systemConfig.uniswapRouterAddress,
@@ -51,14 +42,7 @@ async function main() {
         for (const key of Object.keys(earningPoolContracts)) {
             await earningPoolContracts[key].setInvoker(await contract.getAddress());
         }
-
-        console.log('After balance:', web3.utils.fromWei(await web3.eth.getBalance(await deployer.getAddress()), 'ether'));
-        console.timeEnd(startTime);
-        process.exit(0);
-    } catch (error) {
-        console.error(error);
-        process.exit(1);
-    }
+    });
 }
 
 main();
