@@ -1,5 +1,5 @@
 import { Contract } from 'ethers';
-import { Combo, ComboEntry, makeCombo } from '../utils/combo.util';
+import { Combo, TokenInfo, makeCombo } from '../utils/combo.util';
 import { SystemConfig } from '../utils/config.util';
 import { deployContract } from '../utils/deploy.util';
 import { ethers } from 'hardhat';
@@ -8,8 +8,9 @@ export interface Config {
     systemConfig: SystemConfig;
 
     // custom config
-    ethTokenAddress: string;
+    wethTokenAddress: string;
     linkTokenAddress: string;
+    daiTokenAddress: string;
 }
 
 export async function makeConfig(): Promise<Config> {
@@ -39,36 +40,58 @@ export async function makeConfig(): Promise<Config> {
         systemConfig: systemConfig,
         
         // https://sepolia.etherscan.io/address/0xe7ec1b0015eb2adeedb1b7f9f1ce82f9dad6df08#readProxyContract
-        ethTokenAddress: '0xD0dF82dE051244f04BfF3A8bB1f62E1cD39eED92', // WETH
-        linkTokenAddress: '0x8a0E31de20651fe58A369fD6f76c21A8FF7f8d42',// LINK
+        wethTokenAddress: '0xD0dF82dE051244f04BfF3A8bB1f62E1cD39eED92',
+        linkTokenAddress: '0x8a0E31de20651fe58A369fD6f76c21A8FF7f8d42',
+        daiTokenAddress: '0x68194a729c2450ad26072b3d33adacbcef39d574',
     }
 }
 
 export async function deployEarningPoolContracts(config: Config, deployAaveEarningPool: Function, deployCompoundEarningPool: Function): Promise<{[key: string]: Contract}> {
     return {
-        'WETH': await deployAaveEarningPool(config.ethTokenAddress),
+        'WETH': await deployAaveEarningPool(config.wethTokenAddress),
         'LINK': await deployAaveEarningPool(config.linkTokenAddress),
+        'DAI': await deployAaveEarningPool(config.daiTokenAddress),
         // 'LINK': await deployCompoundEarningPool(config.daiTokenAddress),
     }
 }
 
 export async function makeCombos(config: Config, earningPoolContracts: {[key: string]: Contract}): Promise<Combo[]> {
-    const tokenWeth: ComboEntry = makeCombo(30, {
+    const tokenWeth: TokenInfo = {
         id: 0,
         name: 'WETH',
-        token: config.ethTokenAddress,
+        token: config.wethTokenAddress,
         earningContract: await earningPoolContracts.WETH.getAddress(),
-    });
+    };
 
-    const tokenLink: ComboEntry = makeCombo(70, {
+    const tokenLink: TokenInfo = {
         id: 1,
         name: 'LINK',
         token: config.linkTokenAddress,
         earningContract: await earningPoolContracts.LINK.getAddress(),
-    });
+    };
 
-    return [{
-        creditRating: 0,
-        entries: [tokenWeth, tokenLink]
-    }]    
+    const tokenDai: TokenInfo = {
+        id: 2,
+        name: 'DAI',
+        token: config.daiTokenAddress,
+        earningContract: await earningPoolContracts.DAI.getAddress(),
+    };
+
+    const combos = [
+        {
+            creditRating: 0,
+            entries: [makeCombo(30, tokenWeth), makeCombo(70, tokenLink)]
+        },
+        {
+            creditRating: 1,
+            entries: [makeCombo(40, tokenDai), makeCombo(60, tokenLink)]
+        }
+    ];
+
+    for (const combo of combos) {
+        console.log(`{\ncreditRating: ${combo.creditRating},`);
+        console.log('entries:', combo.entries);
+        console.log('}')
+    }
+    return combos;
 }

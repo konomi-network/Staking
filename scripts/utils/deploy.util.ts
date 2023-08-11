@@ -77,6 +77,7 @@ export async function cacheDeployContract(deployer: Signer, contractName: string
 
   const json = load(cachePath);
   const cacheName = [contractName, ...args].join('|');
+  console.log(`cacheDeployContract cacheName: ${cacheName}`)
 
   if (json[cacheName] !== undefined) {
     console.log(`Contract \x1b[33m${contractName}\x1b[0m already deployed to \x1b[33m${json[cacheName]}\x1b[0m`);

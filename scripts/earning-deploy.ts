@@ -46,7 +46,11 @@ async function main() {
         ]);
 
         for (const key of Object.keys(earningPoolContracts)) {
-            await earningPoolContracts[key].setInvoker(await contract.getAddress());
+            try {
+                await earningPoolContracts[key].setInvoker(await contract.getAddress());
+            } catch (error) {
+                console.error(`${key} setInvoker failed by ${error}`)
+            }
         }
     });
 }

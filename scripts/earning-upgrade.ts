@@ -12,7 +12,7 @@ async function main() {
             systemConfig.uniswapRouterAddress,
             systemConfig.maxPerUserDeposit,
             systemConfig.minDepositAmount,
-            '[object Object]'
+            '[object Object],[object Object]'
         ]
 
         const contractName = 'Earning';
