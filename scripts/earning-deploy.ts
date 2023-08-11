@@ -36,10 +36,12 @@ async function main() {
 
         const combos = await env.makeCombos(config, earningPoolContracts);
 
+        const earningSwapContract = await deployContractWithProxy(deployer, 'EarningSwapRouter', [systemConfig.uniswapRouterAddress]);
+
         const contract = await deployContractWithProxy(deployer, 'Earning', [
             systemConfig.earningTokenAddress,
             systemConfig.platformFee,
-            systemConfig.uniswapRouterAddress,
+            await earningSwapContract.getAddress(),
             systemConfig.maxPerUserDeposit,
             systemConfig.minDepositAmount,
             combos
@@ -51,6 +53,12 @@ async function main() {
             } catch (error) {
                 console.error(`${key} setInvoker failed by ${error}`)
             }
+        }
+
+        try {
+            await earningSwapContract.setInvoker(await contract.getAddress());
+        } catch (error) {
+            console.error(`earningSwapContract setInvoker failed by ${error}`)
         }
     });
 }

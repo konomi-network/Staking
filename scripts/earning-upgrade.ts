@@ -12,7 +12,7 @@ async function main() {
                 args: [
                     systemConfig.earningTokenAddress,
                     systemConfig.platformFee,
-                    systemConfig.uniswapRouterAddress,
+                    '0x41F0460047DF21c305A43D784c636Ac502Bf5e9B',
                     systemConfig.maxPerUserDeposit,
                     systemConfig.minDepositAmount,
                     '[object Object],[object Object]'
