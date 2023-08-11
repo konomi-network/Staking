@@ -4,7 +4,8 @@ import { Combo, ComboEntry, makeCombo } from '../utils/combo.util';
 import { SystemConfig } from '../utils/config.util';
 import {
     deployContract,
-    deployContractWithProxy
+    deployContractWithProxy,
+    expandTo18Decimals
 } from '../utils/deploy.util';
 
 export interface Config {
@@ -38,8 +39,8 @@ export async function makeConfig(): Promise<Config> {
         uniswapRouterAddress: await swapRouterContract.getAddress(),
         earningTokenAddress: await earningToken.getAddress(),
         platformFee: 1000, // 1%
-        maxPerUserDeposit: 10000,
-        minDepositAmount: 1000,
+        maxPerUserDeposit: expandTo18Decimals(10000),
+        minDepositAmount: expandTo18Decimals(1000),
         maxInterestRate: 1000, // 10%
     }
 

@@ -6,7 +6,7 @@ export interface SystemConfig {
     earningTokenAddress: string;
 
     platformFee: number;
-    maxPerUserDeposit: number;
-    minDepositAmount: number;
+    maxPerUserDeposit: bigint;
+    minDepositAmount: bigint;
     maxInterestRate: number;
 }

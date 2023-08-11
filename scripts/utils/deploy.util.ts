@@ -15,11 +15,15 @@ function write(cache: any, path: string) {
   fs.writeFileSync(path, JSON.stringify(cache, null, 2));
 }
 
+export function expandTo18Decimals(n: number): bigint {
+  return BigInt(n) * (10n ** 18n);
+}
+
 export async function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function tryExecute(callback: (deployer: Signer) => void) {
+export async function tryExecute(callback: (deployer: Signer) => Promise<void>) {
   const [deployer] = await ethers.getSigners();
   const beforeBalance = await balanceOf(await deployer.getAddress());
   console.log('Before balance:', beforeBalance);
@@ -57,6 +61,7 @@ export function loadCacheContractAddress(contractName: string, args: any[]): str
 
   const json = load(cachePath);
   const cacheName = [contractName, ...args].join('|');
+  console.log(`cacheDeployContract cacheName: ${cacheName} with address: ${json[cacheName]}`)
 
   return json[cacheName];
 }
@@ -66,6 +71,7 @@ export async function loadCacheContract(deployer: Signer, contractName: string, 
 
   const json = load(cachePath);
   const cacheName = [contractName, ...args].join('|');
+  console.log(`cacheDeployContract cacheName: ${cacheName} with address: ${json[cacheName]}`)
 
   const artifact = await artifacts.readArtifact(contractName);
   return new Contract(json[cacheName], artifact.abi, deployer);
@@ -77,7 +83,7 @@ export async function cacheDeployContract(deployer: Signer, contractName: string
 
   const json = load(cachePath);
   const cacheName = [contractName, ...args].join('|');
-  console.log(`cacheDeployContract cacheName: ${cacheName}`)
+  console.log(`cacheDeployContract cacheName: ${cacheName} with address: ${json[cacheName]}`)
 
   if (json[cacheName] !== undefined) {
     console.log(`Contract \x1b[33m${contractName}\x1b[0m already deployed to \x1b[33m${json[cacheName]}\x1b[0m`);

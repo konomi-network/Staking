@@ -267,7 +267,7 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
             }));
             
             // Update total deposit
-            totalDeposit[earnInfo.token] += amountIn;
+            totalDeposit[earnInfo.token] += tokenAmountOut;
         }
 
         emit Deposited(msg.sender, comboId, amountIn, amountFee);
@@ -450,6 +450,14 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
         Combo memory oldCombo = _removeCombo(comboId);
 
         emit RemovedCombo(msg.sender, comboId, oldCombo);
+    }
+
+    function setMaxPerUserDeposit(uint256 _maxPerUserDeposit) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        maxPerUserDeposit = _maxPerUserDeposit;
+    }
+
+    function setMinDepositAmount(uint256 _minDepositAmount) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        minDepositAmount = _minDepositAmount;
     }
 
     /**

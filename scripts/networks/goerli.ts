@@ -1,6 +1,7 @@
 import { Contract } from 'ethers';
 import { Combo, ComboEntry, makeCombo } from '../utils/combo.util';
 import { SystemConfig } from '../utils/config.util';
+import { expandTo18Decimals } from '../utils/deploy.util';
 
 export interface Config {
     systemConfig: SystemConfig;
@@ -22,8 +23,8 @@ export async function makeConfig(): Promise<Config> {
         earningTokenAddress: '0x2899a03ffDab5C90BADc5920b4f53B0884EB13cC',// DAI
         
         platformFee: 1000, // 1%
-        maxPerUserDeposit: 10000,
-        minDepositAmount: 1000,
+        maxPerUserDeposit: expandTo18Decimals(10000),
+        minDepositAmount: expandTo18Decimals(1000),
         maxInterestRate: 1000, // 10%
     }
 
