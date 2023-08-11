@@ -27,7 +27,7 @@ export async function tryExecute(callback: (deployer: Signer) => void) {
     const startTime = `Deploy contract to \x1b[33m${network.name}\x1b[0m network`;
     console.time(startTime);
 
-    callback(deployer);
+    await callback(deployer);
 
     const afterBalance = await balanceOf(await deployer.getAddress());
     console.log('After balance:', afterBalance, Number(afterBalance) - Number(beforeBalance));
