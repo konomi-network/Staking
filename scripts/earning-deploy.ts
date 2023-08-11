@@ -1,6 +1,6 @@
 import { network } from 'hardhat';
 import { Contract } from 'ethers';
-import { tryExecute, deployContractWithProxy } from './utils/deploy.util';
+import { tryExecute, deployContractWithProxy, loadSystemConfig } from './utils/deploy.util';
 
 async function main() {
     await tryExecute(async (deployer) => {
@@ -9,20 +9,26 @@ async function main() {
         console.log(`Deploying contracts with account: \x1b[33m${await deployer.getAddress()}\x1b[0m`);
 
         const config = await env.makeConfig();
-        const systemConfig = config.systemConfig;
-
-        const PLATFORM_FEE = 1000; // 1%
-        const MAX_PER_USER_DEPOSIT = 10000;
-        const MIN_DEPOSIT_AMOUNT = 1000;
-        const MAX_INTEREST_RATE = 1000; // 10%;
+        const systemConfig = await loadSystemConfig();
 
         const deployAaveEarningPool = async(earningTokenAddress: string): Promise<Contract> => {
-            const args = [systemConfig.aavePoolAddress, systemConfig.aTokenAddress, earningTokenAddress, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE];
+            const args = [
+                systemConfig.aavePoolAddress,
+                systemConfig.aTokenAddress,
+                earningTokenAddress,
+                systemConfig.maxPerUserDeposit,
+                systemConfig.maxInterestRate
+            ];
             return await deployContractWithProxy(deployer, 'AaveEarningPool', args);
         }
 
         const deployCompoundEarningPool = async(earningTokenAddress: string): Promise<Contract> => {
-            const args = [systemConfig.cTokenAddress, earningTokenAddress, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE];
+            const args = [
+                systemConfig.cTokenAddress,
+                earningTokenAddress,
+                systemConfig.maxPerUserDeposit,
+                systemConfig.maxInterestRate
+            ];
             return await deployContractWithProxy(deployer, 'CompoundEarningPool', args);
         }
         
@@ -32,10 +38,10 @@ async function main() {
 
         const contract = await deployContractWithProxy(deployer, 'Earning', [
             systemConfig.earningTokenAddress,
-            PLATFORM_FEE,
+            systemConfig.platformFee,
             systemConfig.uniswapRouterAddress,
-            MAX_PER_USER_DEPOSIT,
-            MIN_DEPOSIT_AMOUNT,
+            systemConfig.maxPerUserDeposit,
+            systemConfig.minDepositAmount,
             combos
         ]);
 

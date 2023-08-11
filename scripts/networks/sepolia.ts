@@ -28,6 +28,11 @@ export async function makeConfig(): Promise<Config> {
         uniswapRouterAddress: '0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E',
         // https://sepolia.etherscan.io/address/0xe7ec1b0015eb2adeedb1b7f9f1ce82f9dad6df08#readProxyContract
         earningTokenAddress: await earningToken.getAddress(),
+
+        platformFee: 1000, // 1%
+        maxPerUserDeposit: 10000,
+        minDepositAmount: 1000,
+        maxInterestRate: 1000, // 10%
     }
 
     return {

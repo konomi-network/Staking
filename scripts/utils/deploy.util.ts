@@ -2,6 +2,7 @@ import fs from 'fs';
 import { Contract, Signer } from 'ethers';
 import { ethers, upgrades, artifacts, network } from 'hardhat';
 import Web3 from 'web3';
+import { SystemConfig } from './config.util';
 
 function load(path: string): any {
   if (!fs.existsSync(path)) {
@@ -44,6 +45,20 @@ export async function tryExecute(callback: (deployer: Signer) => void) {
 export async function balanceOf(who: string) {
   const web3 = new Web3(network.provider);
   return web3.utils.fromWei(await web3.eth.getBalance(who), 'ether');
+}
+
+export async function loadSystemConfig(): Promise<SystemConfig> {
+  const env = require(`./networks/${network.name}`)
+  return (await env.makeConfig()).systemConfig;
+}
+
+export function loadCacheContractAddress(contractName: string, args: any[]): string {
+  const cachePath = `./.deploy-cache.${network.name}.json`;
+
+  const json = load(cachePath);
+  const cacheName = [contractName, ...args].join('|');
+
+  return json[cacheName];
 }
 
 export async function loadCacheContract(deployer: Signer, contractName: string, args: any[]): Promise<Contract> {

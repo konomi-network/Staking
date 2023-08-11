@@ -20,6 +20,11 @@ export async function makeConfig(): Promise<Config> {
         // https://docs.uniswap.org/contracts/v3/reference/deployments
         uniswapRouterAddress: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
         earningTokenAddress: '0x2899a03ffDab5C90BADc5920b4f53B0884EB13cC',// DAI
+        
+        platformFee: 1000, // 1%
+        maxPerUserDeposit: 10000,
+        minDepositAmount: 1000,
+        maxInterestRate: 1000, // 10%
     }
 
     return {
