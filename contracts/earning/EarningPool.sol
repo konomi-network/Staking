@@ -70,6 +70,8 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
 
     function setMaxPerUserDeposit(uint256 _maxPerUserDeposit) external onlyRole(DEFAULT_ADMIN_ROLE) {
         maxPerUserDeposit = _maxPerUserDeposit;
+
+        emit UpdatedMaxPerUserDeposit(msg.sender, _maxPerUserDeposit);
     }
 
     function deposit(address onBehalfOf, uint256 amount) external override nonReentrant onlyRole(POOL_ROLE) {

@@ -7,9 +7,8 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
-
 import "./interfaces/IEarning.sol";
+import "./interfaces/IEarningSwapRouter.sol";
 import "./earning/interfaces/IEarningPool.sol";
 import "./ErrorReporter.sol";
 import "./ReentrancyGuard.sol";
@@ -252,7 +251,13 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
             EarningToken storage earnInfo = entry.earning;
 
             uint256 tokenAmountIn = _calculateTokenAmount(amountIn, entry.weight);
-            uint256 tokenAmountOut = _swapExactInputSingle(tokenAmountIn, earnInfo.token);
+            uint256 tokenAmountOut = IEarningSwapRouter(swapRouter).exactInputSingle(
+                msg.sender,
+                address(earningToken),
+                tokenAmountIn,
+                earnInfo.token,
+                ISWAP_POOL_FEE
+            );
 
             // console.log(">>> deposit:", token.earning.token, tokenAmountOut, tokenAmountIn);
 
@@ -370,43 +375,6 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
     }
 
     /**
-     * @notice _swapExactInputSingle swaps a fixed amount of _tokenIn for a maximum possible amount of _tokenOut
-     * using the _tokenIn/_tokenOut 0.3% pool by calling `exactInputSingle` in the swap router.
-     * 
-     * link: https://docs.uniswap.org/contracts/v3/guides/swaps/single-swaps
-     * 
-     * @dev The calling address must approve this contract to spend at least `amountIn` worth of its _tokenIn for this function to succeed.
-     * @param amountIn The exact amount of _tokenIn that will be swapped for _tokenOut.
-     * @param tokenOut token out
-     * @return amountOut The amount of _tokenOut received.
-     */
-    function _swapExactInputSingle(uint256 amountIn, address tokenOut) internal returns (uint256 amountOut) {
-        // msg.sender must approve this contract
-
-        // Transfer the specified amount of _tokenIn to this contract.
-        earningToken.safeTransferFrom(msg.sender, address(this), amountIn);
-
-        // Approve the router to spend _tokenIn.
-        earningToken.safeApprove(swapRouter, amountIn);
-
-        // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
-        // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
-        ISwapRouter.ExactInputSingleParams memory params =
-            ISwapRouter.ExactInputSingleParams({
-                tokenIn: address(earningToken),
-                tokenOut: tokenOut,
-                fee: ISWAP_POOL_FEE,
-                recipient: msg.sender,
-                deadline: currentTime() + 15,
-                amountIn: amountIn,
-                amountOutMinimum: 0,
-                sqrtPriceLimitX96: 0
-            });
-        // // The call to `exactInputSingle` executes the swap.
-        amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
-    }
-
-    /**
      * @notice just admin can do it
      * 
      * @dev Supply amount of reward into this contract
@@ -449,12 +417,22 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
         emit RemovedCombo(msg.sender, comboId, oldCombo);
     }
 
+    function setSwapRouter(address _swapRouter) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        swapRouter = _swapRouter;
+
+        emit UpdatedSwapRouter(msg.sender, _swapRouter);
+    }
+
     function setMaxPerUserDeposit(uint256 _maxPerUserDeposit) external onlyRole(DEFAULT_ADMIN_ROLE) {
         maxPerUserDeposit = _maxPerUserDeposit;
+
+        emit UpdatedMaxPerUserDeposit(msg.sender, _maxPerUserDeposit);
     }
 
     function setMinDepositAmount(uint256 _minDepositAmount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         minDepositAmount = _minDepositAmount;
+
+        emit UpdateMinDepositAmount(msg.sender, _minDepositAmount);
     }
 
     /**

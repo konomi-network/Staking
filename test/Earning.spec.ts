@@ -60,7 +60,9 @@ describe("Earning", function () {
 
     let aavePoolContract: Contract;
 
-    let swapRouterContract: Contract;
+    let earningSwapRouterContract: Contract;
+
+    let uniswapRouterContract: Contract;
 
     let toTestContract: Contract;
 
@@ -97,13 +99,17 @@ describe("Earning", function () {
         await allowanceToken(sender, tokenEth, testContractAddr);
         await allowanceToken(sender, tokenLink, testContractAddr);
         
-        const uniswapRouterAddr = await swapRouterContract.getAddress();
+        const uniswapRouterAddr = await uniswapRouterContract.getAddress();
         await transferToken(tokenEth, uniswapRouterAddr);
         await transferToken(tokenLink, uniswapRouterAddr);
-
         await allowanceToken(sender, tokenEth, uniswapRouterAddr);
         await allowanceToken(sender, tokenLink, uniswapRouterAddr);
-        
+
+        const earningSwapRouterContractAddr = await earningSwapRouterContract.getAddress();
+        await allowanceToken(sender, token, earningSwapRouterContractAddr);
+        await allowanceToken(sender, tokenEth, earningSwapRouterContractAddr);
+        await allowanceToken(sender, tokenLink, earningSwapRouterContractAddr);
+
         const aaveEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
         await allowanceToken(deployer, tokenEth, aaveEarningPoolContractAddr, false);
         await allowanceToken(sender, tokenEth, aaveEarningPoolContractAddr);
@@ -124,12 +130,15 @@ describe("Earning", function () {
         tokenAave = await deployContractWithProxyDeployer(deployer, 'MockAToken', ['AAVE ERC20', 'aERC20'], isSilent);
         tokenCompound = await deployContractWithDeployer(deployer, 'MockCToken', [], isSilent);
 
-        swapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
+        uniswapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
 
         const tokenAddr = await token.getAddress();
         const tokenEthAddr = await tokenEth.getAddress();
         const tokenLinkAddr = await tokenLink.getAddress();
-        const uniswapRouterAddr = await swapRouterContract.getAddress();
+        const uniswapRouterAddr = await uniswapRouterContract.getAddress();
+
+        earningSwapRouterContract = await deployContractWithProxyDeployer(deployer, 'EarningSwapRouter', [uniswapRouterAddr], isSilent);
+        const earningSwapRouterContractAddress = await earningSwapRouterContract.getAddress();
 
         aavePoolContract = await deployContractWithDeployer(deployer, 'MockAavePool', [], isSilent);
         const aavePool = MockAavePool__factory.connect(await aavePoolContract.getAddress(), ethers.provider);
@@ -206,12 +215,13 @@ describe("Earning", function () {
         toTestContract = await deployContractWithProxyDeployer(
             deployer,
             'Earning',
-            [tokenAddr, PLATFORM_FEE, uniswapRouterAddr, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS],
+            [tokenAddr, PLATFORM_FEE, earningSwapRouterContractAddress, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS],
             isSilent,
         );
 
         await aaveEarningPoolContract.setInvoker(await toTestContract.getAddress());
         await compoundEarningPoolContract.setInvoker(await toTestContract.getAddress());
+        await earningSwapRouterContract.setInvoker(await toTestContract.getAddress());
     });
 
     describe('Deposited', () => {
@@ -280,7 +290,8 @@ describe("Earning", function () {
 
             const senderAddr = await sender.getAddress();
             const testContractAddr = await toTestContract.getAddress();
-            const uniswapRouterAddr = await swapRouterContract.getAddress();
+            const earningSwapRouterContractAddr = await earningSwapRouterContract.getAddress();
+            const uniswapRouterAddr = await uniswapRouterContract.getAddress();
 
             expect(await tokenEth.balanceOf(uniswapRouterAddr)).to.eq(TEST_AMOUNT);
             expect(await tokenLink.balanceOf(uniswapRouterAddr)).to.eq(TEST_AMOUNT);
@@ -291,7 +302,8 @@ describe("Earning", function () {
             let amount = 1000n;
             await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
             expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
-            expect(await token.balanceOf(testContractAddr)).to.eq(amount);
+            expect(await token.balanceOf(testContractAddr)).to.eq(100n);
+            expect(await token.balanceOf(earningSwapRouterContractAddr)).to.eq(900n);
             expect(await tokenEth.balanceOf(uniswapRouterAddr) + BigInt(300 - calcFee(300))).to.eq(TEST_AMOUNT);
             expect(await tokenLink.balanceOf(uniswapRouterAddr) + BigInt(700 - calcFee(700))).to.eq(TEST_AMOUNT);
             expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);

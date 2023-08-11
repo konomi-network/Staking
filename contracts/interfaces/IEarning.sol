@@ -56,6 +56,9 @@ interface IEarning {
     event RemovedCombo(address who, uint8 comboId, Combo oldCombo);
     event ExactedEarningFee(address who, uint256 amountIn, uint256 fee);
     event RewardPumped(address who, uint256 extendTo);
+    event UpdatedSwapRouter(address who, address swapRouter);
+    event UpdatedMaxPerUserDeposit(address who, uint256 amount);
+    event UpdateMinDepositAmount(address who, uint256 amount);
 
     /// Methods
     function initialize(
