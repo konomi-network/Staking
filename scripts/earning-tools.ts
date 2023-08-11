@@ -1,8 +1,9 @@
-import { UpgradeContract, loadCacheContractAddress, loadSystemConfig, tryExecute } from './utils/deploy.util';
+import { Earning } from '../typechain-types/contracts/Earning';
+import { expandTo18Decimals, loadCacheContract, loadSystemConfig, tryExecute } from './utils/deploy.util';
 
 async function main() {
     await tryExecute(async (deployer) => {
-        console.log(`Upgrading contracts with account: \x1b[33m${await deployer.getAddress()}\x1b[0m`);
+        console.log(`Handling contracts with account: \x1b[33m${await deployer.getAddress()}\x1b[0m`);
 
         const systemConfig = await loadSystemConfig();
 
@@ -40,9 +41,9 @@ async function main() {
             }
         }
 
-        const contractConfig = contractConfigs['Earning'];
-        const cacheContractAddress = loadCacheContractAddress(contractConfig.contractName, contractConfig.args)
-        await UpgradeContract(deployer, contractConfig.contractName, cacheContractAddress);
+        const contractConfig = contractConfigs['daiAaveEarningPool'];
+        const cacheContract = await loadCacheContract(deployer, contractConfig.contractName, contractConfig.args) as unknown as Earning;
+        await cacheContract.setMaxPerUserDeposit(expandTo18Decimals(10000));
     });
 }
 

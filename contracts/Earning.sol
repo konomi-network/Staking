@@ -8,7 +8,6 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
-import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 
 import "./interfaces/IEarning.sol";
 import "./earning/interfaces/IEarningPool.sol";
@@ -253,7 +252,7 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
             EarningToken storage earnInfo = entry.earning;
 
             uint256 tokenAmountIn = _calculateTokenAmount(amountIn, entry.weight);
-            uint256 tokenAmountOut = _swapExactInputSingle(address(earningToken), tokenAmountIn, earnInfo.token);
+            uint256 tokenAmountOut = _swapExactInputSingle(tokenAmountIn, earnInfo.token);
 
             // console.log(">>> deposit:", token.earning.token, tokenAmountOut, tokenAmountIn);
 
@@ -377,25 +376,24 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
      * link: https://docs.uniswap.org/contracts/v3/guides/swaps/single-swaps
      * 
      * @dev The calling address must approve this contract to spend at least `amountIn` worth of its _tokenIn for this function to succeed.
-     * @param tokenIn token in
      * @param amountIn The exact amount of _tokenIn that will be swapped for _tokenOut.
      * @param tokenOut token out
      * @return amountOut The amount of _tokenOut received.
      */
-    function _swapExactInputSingle(address tokenIn, uint256 amountIn, address tokenOut) internal returns (uint256 amountOut) {
+    function _swapExactInputSingle(uint256 amountIn, address tokenOut) internal returns (uint256 amountOut) {
         // msg.sender must approve this contract
 
         // Transfer the specified amount of _tokenIn to this contract.
-        TransferHelper.safeTransferFrom(tokenIn, msg.sender, address(this), amountIn);
+        earningToken.safeTransferFrom(msg.sender, address(this), amountIn);
 
         // Approve the router to spend _tokenIn.
-        TransferHelper.safeApprove(tokenIn, swapRouter, amountIn);
+        earningToken.safeApprove(swapRouter, amountIn);
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
         ISwapRouter.ExactInputSingleParams memory params =
             ISwapRouter.ExactInputSingleParams({
-                tokenIn: tokenIn,
+                tokenIn: address(earningToken),
                 tokenOut: tokenOut,
                 fee: ISWAP_POOL_FEE,
                 recipient: msg.sender,
@@ -404,8 +402,7 @@ contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableU
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             });
-
-        // The call to `exactInputSingle` executes the swap.
+        // // The call to `exactInputSingle` executes the swap.
         amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
     }
 
