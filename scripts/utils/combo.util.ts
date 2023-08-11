@@ -1,4 +1,10 @@
 export interface TokenInfo {
+    name: string;
+    token: string;
+    earningContract: string;
+}
+
+export interface EarningToken {
     id: number;
     name: string;
     token: string;
@@ -7,7 +13,7 @@ export interface TokenInfo {
 
 export interface ComboEntry {
     weight: number;
-    earning: TokenInfo;
+    earning: EarningToken;
 }
 
 export interface Combo {
@@ -15,9 +21,16 @@ export interface Combo {
     entries: ComboEntry[];
 }
 
-export function makeCombo(weight: number, tokenInfo: TokenInfo): ComboEntry {
+export function makeEarningToken(id: number, tokenInfo: TokenInfo): EarningToken {
+    return {
+        id: id,
+        ...tokenInfo
+    }
+}
+
+export function makeCombo(weight: number, earningToken: EarningToken): ComboEntry {
     return {
         weight: weight,
-        earning: tokenInfo
+        earning: earningToken
     };
 }
