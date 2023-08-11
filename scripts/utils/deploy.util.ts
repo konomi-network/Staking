@@ -48,7 +48,7 @@ export async function balanceOf(who: string) {
 }
 
 export async function loadSystemConfig(): Promise<SystemConfig> {
-  const env = require(`./networks/${network.name}`)
+  const env = require(`../networks/${network.name}`)
   return (await env.makeConfig()).systemConfig;
 }
 
