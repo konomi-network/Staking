@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "./interfaces/IEarningSwapRouter.sol";
 
 contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPSUpgradeable {
@@ -29,7 +30,7 @@ contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPS
     }
 
     function exactInputSingle(address tokenIn, uint256 amountIn, address tokenOut, uint24 fee) external override returns (uint256) {
-        return _exactInputSingle(msg.sender, tokenIn, amountIn, tokenOut, fee);
+        return _uniswapV3ExactInput(msg.sender, tokenIn, amountIn, tokenOut, fee);
     }
 
     function exactInputSingle(
@@ -38,11 +39,11 @@ contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPS
         uint256 amountIn,
         address tokenOut,
         uint24 fee) external override onlyRole(INVOKER_ROLE) returns (uint256) {
-        return _exactInputSingle(onBehalfOf, tokenIn, amountIn, tokenOut, fee);
+        return _uniswapV3ExactInput(onBehalfOf, tokenIn, amountIn, tokenOut, fee);
     }
 
     /**
-     * @notice _exactInputSingle swaps a fixed amount of _tokenIn for a maximum possible amount of _tokenOut
+     * @notice _uniswapV3ExactInput swaps a fixed amount of _tokenIn for a maximum possible amount of _tokenOut
      * using the _tokenIn/_tokenOut 0.3% pool by calling `exactInputSingle` in the swap router.
      * 
      * link: https://docs.uniswap.org/contracts/v3/guides/swaps/single-swaps
@@ -55,19 +56,17 @@ contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPS
      * @param fee swap pool fee
      * @return amountOut The amount of _tokenOut received.
      */
-    function _exactInputSingle(
+    function _uniswapV3ExactInput(
         address onBehalfOf,
         address tokenIn,
         uint256 amountIn,
         address tokenOut,
         uint24 fee) internal returns (uint256 amountOut) {
-        // msg.sender must approve this contract
+        // Transfer the specified amount of tokenIn to this contract.
+        TransferHelper.safeTransferFrom(tokenIn, onBehalfOf, address(this), amountIn);
 
-        // Transfer the specified amount of _tokenIn to this contract.
-        IERC20(tokenIn).safeTransferFrom(onBehalfOf, address(this), amountIn);
-
-        // Approve the router to spend _tokenIn.
-        IERC20(tokenIn).safeIncreaseAllowance(swapRouter, amountIn);
+        // Approve the router to spend tokenIn.
+        TransferHelper.safeApprove(tokenIn, swapRouter, amountIn);
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
@@ -77,16 +76,16 @@ contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPS
                 tokenOut: tokenOut,
                 fee: fee,
                 recipient: onBehalfOf,
-                deadline: block.number + 15,
+                deadline: block.timestamp + 900,
                 amountIn: amountIn,
-                amountOutMinimum: 0,
+                amountOutMinimum: 1,
                 sqrtPriceLimitX96: 0
             });
 
         // The call to `exactInputSingle` executes the swap.
         amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
 
-        emit ExactInputSingled(onBehalfOf, tokenIn, amountIn, tokenOut, fee);
+        emit ExactInputSingled(onBehalfOf, amountOut, params);
     }
 
     /**

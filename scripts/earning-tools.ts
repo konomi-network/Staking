@@ -13,7 +13,7 @@ async function main() {
                 args: [
                     systemConfig.earningTokenAddress,
                     systemConfig.platformFee,
-                    systemConfig.uniswapRouterAddress,
+                    '0x41F0460047DF21c305A43D784c636Ac502Bf5e9B',
                     systemConfig.maxPerUserDeposit,
                     systemConfig.minDepositAmount,
                     '[object Object],[object Object]'
@@ -41,9 +41,10 @@ async function main() {
             }
         }
 
-        const contractConfig = contractConfigs['daiAaveEarningPool'];
+        const contractConfig = contractConfigs['Earning'];
         const cacheContract = await loadCacheContract(deployer, contractConfig.contractName, contractConfig.args) as unknown as Earning;
-        await cacheContract.setMaxPerUserDeposit(expandTo18Decimals(10000));
+        // await cacheContract.setMaxPerUserDeposit(expandTo18Decimals(10000));
+        await cacheContract.setSwapRouter('0x41F0460047DF21c305A43D784c636Ac502Bf5e9B');
     });
 }
 

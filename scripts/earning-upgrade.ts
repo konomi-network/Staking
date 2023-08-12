@@ -37,10 +37,14 @@ async function main() {
                     systemConfig.maxPerUserDeposit,
                     systemConfig.maxInterestRate
                 ]
+            },
+            'EarningSwapRouter': {
+                contractName: 'EarningSwapRouter',
+                args: [systemConfig.uniswapRouterAddress]
             }
         }
 
-        const contractConfig = contractConfigs['Earning'];
+        const contractConfig = contractConfigs['EarningSwapRouter'];
         const cacheContractAddress = loadCacheContractAddress(contractConfig.contractName, contractConfig.args)
         await UpgradeContract(deployer, contractConfig.contractName, cacheContractAddress);
     });
