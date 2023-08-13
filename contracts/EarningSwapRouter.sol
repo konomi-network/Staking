@@ -43,14 +43,14 @@ contract EarningSwapRouter is IEarningSwapRouter, ReentrancyGuard, AccessControl
 
     function setSwapRouter(address _swapRouter) external onlyRole(DEFAULT_ADMIN_ROLE) {
         swapRouter = _swapRouter;
+
+        emit UpdatedSwapRouter(msg.sender, _swapRouter);
     }
 
     function setPermit2(address _permit2) external onlyRole(DEFAULT_ADMIN_ROLE) {
         permit2 = _permit2;
-    }
 
-    function exactInputSingle(address tokenIn, uint256 amountIn, address tokenOut, uint24 fee) external returns (uint256) {
-        return _v3SwapExactInput(msg.sender, tokenIn, amountIn, tokenOut, fee);
+        emit UpdatedPermit2(msg.sender, _permit2);
     }
 
     function exactInputSingle(
@@ -82,7 +82,7 @@ contract EarningSwapRouter is IEarningSwapRouter, ReentrancyGuard, AccessControl
 
         IERC20(_tokenOut).safeTransfer(_onBehalfOf, amountOut);
 
-        emit ExcutedV3SwapExactInput(_onBehalfOf, _tokenIn, _amountIn, _tokenOut, amountOut, _fee);
+        emit ExecutedV3SwapExactInput(_onBehalfOf, _tokenIn, _amountIn, _tokenOut, amountOut, _fee);
     }
     
     function _universalRouterSwap(

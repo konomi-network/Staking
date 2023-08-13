@@ -3,7 +3,9 @@ pragma solidity ^0.8.20;
 
 interface IEarningSwapRouter {
     /// Events
-    event ExcutedV3SwapExactInput(address who, address tokenIn, uint256 amountIn, address tokenOut, uint256 amountOut, uint24 fee);
+    event ExecutedV3SwapExactInput(address who, address tokenIn, uint256 amountIn, address tokenOut, uint256 amountOut, uint24 fee);
+    event UpdatedSwapRouter(address who, address swapRouter);
+    event UpdatedPermit2(address who, address swapRouter);
 
     /// Methods
     function initialize(address _swapRouter, address _permit2) external;

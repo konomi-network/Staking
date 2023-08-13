@@ -230,6 +230,62 @@ describe("Earning", function () {
         await earningSwapRouterContract.setInvoker(await toTestContract.getAddress());
     });
 
+    describe('SetEnv', () => {
+        it('setSwapRouter work', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+            const earningSwapRouterAddr = await earningSwapRouterContract.getAddress();
+
+            const contract = Earning__factory.connect(testContractAddr, deployer);
+
+            await expect(contract.setSwapRouter(earningSwapRouterAddr)).to.emit(contract, 'UpdatedSwapRouter');
+        });
+
+        it('setSwapRouter missing role', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+            const earningSwapRouterAddr = await earningSwapRouterContract.getAddress();
+
+            const contract = Earning__factory.connect(testContractAddr, sender);
+
+            await expect(contract.setSwapRouter(earningSwapRouterAddr)).to.rejectedWith(/AccessControl: account .* is missing role .*/);
+        });
+
+        it('setMaxPerUserDeposit work', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const contract = Earning__factory.connect(testContractAddr, deployer);
+
+            await expect(contract.setMaxPerUserDeposit(MIN_DEPOSIT_AMOUNT + 1n)).to.emit(contract, 'UpdatedMaxPerUserDeposit');
+
+            await expect(contract.deposit(0, MAX_PER_USER_DEPOSIT)).to.be.revertedWithCustomError(contract, 'DepositReachedMaximumAmountPerUser');
+        });
+
+        it('setMaxPerUserDeposit missing role', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const contract = Earning__factory.connect(testContractAddr, sender);
+
+            await expect(contract.setMaxPerUserDeposit(1n)).to.rejectedWith(/AccessControl: account .* is missing role .*/);
+        });
+
+        it('setMinDepositAmount work', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const contract = Earning__factory.connect(testContractAddr, deployer);
+
+            await expect(contract.setMinDepositAmount(MAX_PER_USER_DEPOSIT - 100n)).to.emit(contract, 'UpdateMinDepositAmount');
+
+            await expect(contract.deposit(0, 100n)).to.be.revertedWithCustomError(contract, 'DepositMustBeExceedMinimumAmount');
+        });
+
+        it('setMinDepositAmount missing role', async () => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const contract = Earning__factory.connect(testContractAddr, sender);
+
+            await expect(contract.setMinDepositAmount(1n)).to.rejectedWith(/AccessControl: account .* is missing role .*/);
+        });
+    });
+
     describe('Deposited', () => {
         it('deposit but not enough', async () => {
             const testContractAddr = await toTestContract.getAddress();
@@ -274,10 +330,6 @@ describe("Earning", function () {
         //     await transferTokens();
 
         //     const testContractAddr = await toTestContract.getAddress();
-        //     const uniswapRouterAddr = await swapRouterContract.getAddress();
-
-        //     expect(await tokenEth.balanceOf(uniswapRouterAddr)).to.eq(TEST_AMOUNT);
-        //     expect(await tokenLink.balanceOf(uniswapRouterAddr)).to.eq(TEST_AMOUNT);
 
         //     const earningContract = Earning__factory.connect(testContractAddr);
         //     const connect = earningContract.connect(sender);
@@ -468,9 +520,11 @@ describe("Earning", function () {
             await aaveEarningPool.connect(deployer).setMaxInterestRate(100);
             expect(await connect.averageAPY(0)).to.eq(365);
 
-            const compoundEarningPool = CompoundEarningPool__factory.connect(await compoundEarningPoolContract.getAddress());
-            await compoundEarningPool.connect(deployer).setMaxInterestRate(100);
+            const compoundEarningPool = CompoundEarningPool__factory.connect(await compoundEarningPoolContract.getAddress(), deployer);
+            await compoundEarningPool.setMaxInterestRate(100);
             expect(await connect.averageAPY(0)).to.eq(50);
+
+            await expect(compoundEarningPool.setMaxPerUserDeposit(100)).to.emit(compoundEarningPool, 'UpdatedMaxPerUserDeposit');
         });
 
         it('averageAPY but earning id not exist', async() => {

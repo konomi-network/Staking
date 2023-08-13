@@ -116,13 +116,7 @@ abstract contract EarningPool is IEarningPool, ReentrancyGuard, AccessControlUpg
     }
 
     function reward(address onBehalfOf, uint256 depositBlock) external override view returns (uint256) {
-        uint256 currentTimestamp = currentTime();
-        if (currentTimestamp <= depositBlock) {
-            return 0;
-        }
-
-        uint256 savedAmount = userTotalEarn[onBehalfOf];
-        return _calculateReward(savedAmount, currentTimestamp, depositBlock);
+        return _calculateReward(userTotalEarn[onBehalfOf], currentTime(), depositBlock);
     }
 
     function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
