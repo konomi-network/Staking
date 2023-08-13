@@ -62,11 +62,16 @@ contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPS
         uint256 amountIn,
         address tokenOut,
         uint24 fee) internal returns (uint256 amountOut) {
-        // Transfer the specified amount of tokenIn to this contract.
-        TransferHelper.safeTransferFrom(tokenIn, onBehalfOf, address(this), amountIn);
+        // // Transfer the specified amount of tokenIn to this contract.
+        // TransferHelper.safeTransferFrom(tokenIn, onBehalfOf, address(this), amountIn);
 
-        // Approve the router to spend tokenIn.
-        TransferHelper.safeApprove(tokenIn, swapRouter, amountIn);
+        // // Approve the router to spend tokenIn.
+        // TransferHelper.safeApprove(tokenIn, swapRouter, amountIn);
+
+        IERC20 token = IERC20(tokenIn);
+
+        token.safeTransferFrom(onBehalfOf, address(this), amountIn);
+        token.safeIncreaseAllowance(swapRouter, amountIn);
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
@@ -84,6 +89,7 @@ contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPS
 
         // The call to `exactInputSingle` executes the swap.
         amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
+        // amountOut = 0;
 
         emit ExactInputSingled(onBehalfOf, amountOut, params);
     }
