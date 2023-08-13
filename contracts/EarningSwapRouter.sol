@@ -8,7 +8,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { SafeCast } from '@uniswap/v3-core/contracts/libraries/SafeCast.sol';
 import "./interfaces/IEarningSwapRouter.sol";
 import "./libraries/uniswap/IUniversalRouter.sol";
-
 import "./libraries/uniswap/IAllowanceTransfer.sol";
 
 contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPSUpgradeable {
@@ -47,7 +46,7 @@ contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPS
         permit2 = _permit2;
     }
 
-    function exactInputSingle(address tokenIn, uint256 amountIn, address tokenOut, uint24 fee) external override returns (uint256) {
+    function exactInputSingle(address tokenIn, uint256 amountIn, address tokenOut, uint24 fee) external returns (uint256) {
         return _v3SwapExactInput(msg.sender, tokenIn, amountIn, tokenOut, fee);
     }
 

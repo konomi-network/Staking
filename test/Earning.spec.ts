@@ -61,8 +61,8 @@ describe("Earning", function () {
     let aavePoolContract: Contract;
 
     let earningSwapRouterContract: Contract;
-
-    let uniswapRouterContract: Contract;
+    let universalRouterContract: Contract;
+    let permit2Contract: Contract;
 
     let toTestContract: Contract;
 
@@ -99,11 +99,11 @@ describe("Earning", function () {
         await allowanceToken(sender, tokenEth, testContractAddr);
         await allowanceToken(sender, tokenLink, testContractAddr);
         
-        const uniswapRouterAddr = await uniswapRouterContract.getAddress();
-        await transferToken(tokenEth, uniswapRouterAddr);
-        await transferToken(tokenLink, uniswapRouterAddr);
-        await allowanceToken(sender, tokenEth, uniswapRouterAddr);
-        await allowanceToken(sender, tokenLink, uniswapRouterAddr);
+        const universalRouterAddr = await universalRouterContract.getAddress();
+        await transferToken(tokenEth, universalRouterAddr);
+        await transferToken(tokenLink, universalRouterAddr);
+        await allowanceToken(sender, tokenEth, universalRouterAddr);
+        await allowanceToken(sender, tokenLink, universalRouterAddr);
 
         const earningSwapRouterContractAddr = await earningSwapRouterContract.getAddress();
         await allowanceToken(sender, token, earningSwapRouterContractAddr);
@@ -130,14 +130,20 @@ describe("Earning", function () {
         tokenAave = await deployContractWithProxyDeployer(deployer, 'MockAToken', ['AAVE ERC20', 'aERC20'], isSilent);
         tokenCompound = await deployContractWithDeployer(deployer, 'MockCToken', [], isSilent);
 
-        uniswapRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
+        universalRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
+        permit2Contract = await deployContractWithDeployer(deployer, 'MockPermit2', [], isSilent);
 
         const tokenAddr = await token.getAddress();
         const tokenEthAddr = await tokenEth.getAddress();
         const tokenLinkAddr = await tokenLink.getAddress();
-        const uniswapRouterAddr = await uniswapRouterContract.getAddress();
 
-        earningSwapRouterContract = await deployContractWithProxyDeployer(deployer, 'EarningSwapRouter', [uniswapRouterAddr], isSilent);
+        const universalRouterAddr = await universalRouterContract.getAddress();
+        const permit2Addr = await permit2Contract.getAddress();
+
+        earningSwapRouterContract = await deployContractWithProxyDeployer(deployer, 'EarningSwapRouter', [
+            universalRouterAddr,
+            permit2Addr
+        ], isSilent);
         const earningSwapRouterContractAddress = await earningSwapRouterContract.getAddress();
 
         aavePoolContract = await deployContractWithDeployer(deployer, 'MockAavePool', [], isSilent);
