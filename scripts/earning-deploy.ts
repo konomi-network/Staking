@@ -36,7 +36,10 @@ async function main() {
 
         const combos = await env.makeCombos(config, earningPoolContracts);
 
-        const earningSwapContract = await deployContractWithProxy(deployer, 'EarningSwapRouter', [systemConfig.uniswapRouterAddress]);
+        const earningSwapContract = await deployContractWithProxy(deployer, 'EarningSwapRouter', [
+            systemConfig.uniswapRouterAddress,
+            systemConfig.uniswapPermit2Address,
+        ]);
 
         const contract = await deployContractWithProxy(deployer, 'Earning', [
             systemConfig.earningTokenAddress,

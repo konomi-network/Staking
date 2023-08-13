@@ -31,12 +31,14 @@ export async function makeConfig(): Promise<Config> {
     const earningToken = await deployContract(deployer, 'MockERC20', ['USDA', 'USDA']);
     
     const swapRouterContract = await deployContract(deployer, 'MockSwapRouter', []);
+    const permit2Contract = await deployContract(deployer, 'MockPermit2', []);
 
     const systemConfig: SystemConfig = {
         aavePoolAddress: await aavePoolContract.getAddress(),
         aTokenAddress: await aToken.getAddress(),
         cTokenAddress: await cToken.getAddress(),
         uniswapRouterAddress: await swapRouterContract.getAddress(),
+        uniswapPermit2Address: await permit2Contract.getAddress(),
         earningTokenAddress: await earningToken.getAddress(),
         platformFee: 1000, // 1%
         maxPerUserDeposit: expandTo18Decimals(10000),

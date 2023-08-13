@@ -3,6 +3,7 @@ export interface SystemConfig {
     aTokenAddress: string;
     cTokenAddress: string;
     uniswapRouterAddress: string;
+    uniswapPermit2Address: string;
     earningTokenAddress: string;
 
     platformFee: number;

@@ -42,7 +42,10 @@ async function main() {
             },
             'EarningSwapRouter': {
                 contractName: 'EarningSwapRouter',
-                args: [systemConfig.uniswapRouterAddress]
+                args: [
+                    systemConfig.uniswapRouterAddress,
+                    systemConfig.uniswapPermit2Address,
+                ]
             }
         }
 

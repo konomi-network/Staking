@@ -25,8 +25,9 @@ export async function makeConfig(): Promise<Config> {
         // https://docs.compound.finance/v2/#networks
         cTokenAddress: '0x0545a8eaF7ff6bB6F708CbB544EA55DBc2ad7b2a', // cDAI - not support this network
         // https://docs.uniswap.org/contracts/v3/reference/deployments
-        // https://sepolia.etherscan.io/address/0x0227628f3F023bb0B980b67D528571c95c6DaC1c
-        uniswapRouterAddress: '0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E',
+        // https://sepolia.etherscan.io/address/0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD
+        uniswapRouterAddress: '0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD',
+        uniswapPermit2Address: '0x000000000022d473030f116ddee9f6b43ac78ba3',
         // https://sepolia.etherscan.io/address/0xe7ec1b0015eb2adeedb1b7f9f1ce82f9dad6df08#readProxyContract
         earningTokenAddress: await earningToken.getAddress(),
 
