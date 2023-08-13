@@ -1,4 +1,5 @@
 import { Earning } from '../typechain-types/contracts/Earning';
+import { EarningSwapRouter } from '../typechain-types/contracts/EarningSwapRouter';
 import { expandTo18Decimals, loadCacheContract, loadSystemConfig, tryExecute } from './utils/deploy.util';
 
 async function main() {
@@ -38,13 +39,18 @@ async function main() {
                     systemConfig.maxPerUserDeposit,
                     systemConfig.maxInterestRate
                 ]
+            },
+            'EarningSwapRouter': {
+                contractName: 'EarningSwapRouter',
+                args: [systemConfig.uniswapRouterAddress]
             }
         }
 
-        const contractConfig = contractConfigs['Earning'];
-        const cacheContract = await loadCacheContract(deployer, contractConfig.contractName, contractConfig.args) as unknown as Earning;
+        const contractConfig = contractConfigs['EarningSwapRouter'];
+        const cacheContract = await loadCacheContract(deployer, contractConfig.contractName, contractConfig.args) as unknown as EarningSwapRouter;
         // await cacheContract.setMaxPerUserDeposit(expandTo18Decimals(10000));
-        await cacheContract.setSwapRouter('0x41F0460047DF21c305A43D784c636Ac502Bf5e9B');
+        // await cacheContract.setSwapRouter('0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD');
+        await cacheContract.setPermit2('0x000000000022D473030F116dDEE9F6B43aC78BA3');
     });
 }
 

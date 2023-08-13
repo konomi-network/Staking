@@ -41,7 +41,7 @@ export async function tryExecute(callback: (deployer: Signer) => Promise<void>) 
   } catch (error) {
     console.error(`tryExecute failed by: ${error}`);
     const afterBalance = await balanceOf(await deployer.getAddress());
-    console.log('After balance:', afterBalance, Number(afterBalance) - Number(beforeBalance));
+    console.log('After balance:', afterBalance, Number(beforeBalance) - Number(afterBalance));
     process.exit(1);
   }
 }
