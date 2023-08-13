@@ -10,8 +10,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./interfaces/IEarning.sol";
 import "./interfaces/IEarningSwapRouter.sol";
 import "./earning/interfaces/IEarningPool.sol";
-import "./ErrorReporter.sol";
-import "./ReentrancyGuard.sol";
+import "./libraries/utils/ReentrancyGuard.sol";
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
@@ -26,7 +25,7 @@ import "./ReentrancyGuard.sol";
  * 
  * User can choose to earn to these different combos.
  */
-contract Earning is IEarning, ErrorReporter, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, ReentrancyGuard {
+contract Earning is IEarning, ReentrancyGuard, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;
 
     // The underlying earning token

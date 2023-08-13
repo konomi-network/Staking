@@ -9,8 +9,9 @@ import { SafeCast } from '@uniswap/v3-core/contracts/libraries/SafeCast.sol';
 import "./interfaces/IEarningSwapRouter.sol";
 import "./libraries/uniswap/IUniversalRouter.sol";
 import "./libraries/uniswap/IAllowanceTransfer.sol";
+import "./libraries/utils/ReentrancyGuard.sol";
 
-contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPSUpgradeable {
+contract EarningSwapRouter is IEarningSwapRouter, ReentrancyGuard, AccessControlUpgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
 
@@ -32,6 +33,8 @@ contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPS
 
         swapRouter = _swapRouter;
         permit2 = _permit2;
+
+        __ReentrancyGuard_init();
     }
 
     function setInvoker(address _invoker) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -66,7 +69,7 @@ contract EarningSwapRouter is IEarningSwapRouter, AccessControlUpgradeable, UUPS
         uint256 _amountIn,
         address _tokenOut,
         uint24 _fee
-    ) internal returns (uint256 amountOut) {
+    ) internal nonReentrant returns (uint256 amountOut) {
         address _recipient =  address(this);
 
         IERC20(_tokenIn).safeTransferFrom(_onBehalfOf, _recipient, _amountIn);

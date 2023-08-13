@@ -1,23 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import "./interfaces/IEarningPool.sol";
-
-import "../ErrorReporter.sol";
-import "../ReentrancyGuard.sol";
+import "../libraries/utils/ReentrancyGuard.sol";
+import "./libraries/MathUtils.sol";
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
-abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgradeable, UUPSUpgradeable, ReentrancyGuard {
-    using Math for uint256;
-    using SafeERC20 for IERC20;
-
+abstract contract EarningPool is IEarningPool, ReentrancyGuard, AccessControlUpgradeable, UUPSUpgradeable {
     // The underlying earning token
     IERC20 public earningToken;
 
@@ -140,7 +135,7 @@ abstract contract EarningPool is IEarningPool, ErrorReporter, AccessControlUpgra
     }
 
     function _fixedApy() internal view returns (uint256 supplyRatePerYear) {
-        supplyRatePerYear = _calculateApy().min(maxInterestRate);
+        supplyRatePerYear = MathUtils.min(_calculateApy(), maxInterestRate);
     }
 
     function _calculateApy() internal view virtual returns (uint256 supplyRatePerYear);

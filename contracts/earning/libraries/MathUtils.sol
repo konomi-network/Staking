@@ -7,6 +7,13 @@ library MathUtils {
     using WadMath for uint256;
 
     /**
+     * @dev Returns the smallest of two numbers.
+     */
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
+    }
+
+    /**
      * @dev Function to calculate the interest using a compounded interest rate formula
      * To avoid expensive exponentiation, the calculation is performed using a binomial approximation:
      *
