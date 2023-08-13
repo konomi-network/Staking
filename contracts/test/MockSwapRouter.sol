@@ -2,47 +2,39 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
-import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
+import "../libraries/uniswap/IUniversalRouter.sol";
+import "./BytesLib.sol";
 
-contract MockSwapRouter is ISwapRouter {
+// Uncomment this line to use console.log
+import "hardhat/console.sol";
+
+contract MockSwapRouter is IUniversalRouter {
+    using BytesLib for bytes;
+
     uint24 public constant MOCK_AMOUT_IN = 1;
     uint24 public constant MOCK_AMOUT_OUT = 1;
 
-    function exactInputSingle(
-        ExactInputSingleParams calldata params
-    ) external payable override returns (uint256 amountOut) {
-        amountOut = MOCK_AMOUT_OUT * params.amountIn;
+    function execute(bytes calldata, bytes[] calldata inputs, uint256) external payable {
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMin;
+        bool payerIsUser;
 
-        IERC20(params.tokenOut).approve(params.recipient, amountOut);
-        IERC20(params.tokenOut).transfer(params.recipient, amountOut);
-    }
+        bytes calldata input = inputs[1];
+        assembly {
+            recipient := calldataload(input.offset)
+            amountIn := calldataload(add(input.offset, 0x20))
+            amountOutMin := calldataload(add(input.offset, 0x40))
+            // 0x60 offset is the path, decoded below
+            payerIsUser := calldataload(add(input.offset, 0x80))
+        }
+        bytes calldata path = input.toBytes(3);
 
-    function exactInput(
-        ExactInputParams calldata params
-    ) external payable override returns (uint256 amountOut) {
-        amountOut = MOCK_AMOUT_OUT * params.amountIn;
-    }
+        (,,address tokenOut) = path.toPool();
 
-    function exactOutputSingle(
-        ExactOutputSingleParams calldata params
-    ) external payable override returns (uint256 amountIn) {
-        amountIn = MOCK_AMOUT_IN * params.amountOut;
-    }
+        console.log("MockSwapRouter execute:", tokenOut, recipient, amountIn);
 
-    function exactOutput(
-        ExactOutputParams calldata params
-    ) external payable override returns (uint256 amountIn) {
-        amountIn = MOCK_AMOUT_IN * params.amountOut;
-    }
-
-    function uniswapV3SwapCallback(
-        int256 amount0Delta,
-        int256 amount1Delta,
-        bytes calldata data
-    ) external pure {
-        amount0Delta;
-        amount1Delta;
-        data;
+        IERC20(tokenOut).approve(recipient, amountIn);
+        IERC20(tokenOut).transfer(recipient, amountIn);
     }
 }

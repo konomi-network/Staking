@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { SafeCast } from '@uniswap/v3-core/contracts/libraries/SafeCast.sol';
-import "./interfaces/IEarningSwapRouter.sol";
 import "./libraries/uniswap/IUniversalRouter.sol";
 import "./libraries/uniswap/IAllowanceTransfer.sol";
+import "./libraries/uniswap/SafeCast.sol";
 import "./libraries/utils/ReentrancyGuard.sol";
+import "./interfaces/IEarningSwapRouter.sol";
 
 contract EarningSwapRouter is IEarningSwapRouter, ReentrancyGuard, AccessControlUpgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;

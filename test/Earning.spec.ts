@@ -296,11 +296,10 @@ describe("Earning", function () {
 
             const senderAddr = await sender.getAddress();
             const testContractAddr = await toTestContract.getAddress();
-            const earningSwapRouterContractAddr = await earningSwapRouterContract.getAddress();
-            const uniswapRouterAddr = await uniswapRouterContract.getAddress();
+            const universalRouterAddr = await universalRouterContract.getAddress();
 
-            expect(await tokenEth.balanceOf(uniswapRouterAddr)).to.eq(TEST_AMOUNT);
-            expect(await tokenLink.balanceOf(uniswapRouterAddr)).to.eq(TEST_AMOUNT);
+            expect(await tokenEth.balanceOf(universalRouterAddr)).to.eq(TEST_AMOUNT);
+            expect(await tokenLink.balanceOf(universalRouterAddr)).to.eq(TEST_AMOUNT);
 
             const earningContract = Earning__factory.connect(testContractAddr);
             const connect = earningContract.connect(sender);
@@ -309,9 +308,8 @@ describe("Earning", function () {
             await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
             expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
             expect(await token.balanceOf(testContractAddr)).to.eq(100n);
-            expect(await token.balanceOf(earningSwapRouterContractAddr)).to.eq(900n);
-            expect(await tokenEth.balanceOf(uniswapRouterAddr) + BigInt(300 - calcFee(300))).to.eq(TEST_AMOUNT);
-            expect(await tokenLink.balanceOf(uniswapRouterAddr) + BigInt(700 - calcFee(700))).to.eq(TEST_AMOUNT);
+            expect(await tokenEth.balanceOf(universalRouterAddr) + BigInt(300 - calcFee(300))).to.eq(TEST_AMOUNT);
+            expect(await tokenLink.balanceOf(universalRouterAddr) + BigInt(700 - calcFee(700))).to.eq(TEST_AMOUNT);
             expect(await tokenEth.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
             expect(await tokenLink.balanceOf(senderAddr)).to.eq(TEST_AMOUNT);
 
