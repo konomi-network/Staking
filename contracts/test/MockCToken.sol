@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import "../earning/interfaces/ICompound.sol";
+import "../earning/interfaces/ICompoundV2.sol";
 
 // Uncomment this line to use console.log
 import "hardhat/console.sol";

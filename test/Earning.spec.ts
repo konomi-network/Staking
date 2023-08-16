@@ -22,7 +22,7 @@ import {
 } from '../typechain-types/factories/contracts';
 import {
     AaveEarningPool__factory,
-    CompoundEarningPool__factory,
+    CompoundV2EarningPool__factory,
 } from '../typechain-types/factories/contracts/earning';
 
 // platform fee, i.e. 1000 represents 1%
@@ -56,7 +56,7 @@ describe("Earning", function () {
     let tokenCompound: Contract;
 
     let aaveEarningPoolContract: Contract;
-    let compoundEarningPoolContract: Contract;
+    let compoundV2EarningPoolContract: Contract;
 
     let aavePoolContract: Contract;
 
@@ -114,9 +114,9 @@ describe("Earning", function () {
         await allowanceToken(deployer, tokenEth, aaveEarningPoolContractAddr, false);
         await allowanceToken(sender, tokenEth, aaveEarningPoolContractAddr);
 
-        const compoundEarningPoolContractAddr = await compoundEarningPoolContract.getAddress();
-        await allowanceToken(deployer, tokenLink, compoundEarningPoolContractAddr, false);
-        await allowanceToken(sender, tokenLink, compoundEarningPoolContractAddr);
+        const compoundV2EarningPoolContractAddr = await compoundV2EarningPoolContract.getAddress();
+        await allowanceToken(deployer, tokenLink, compoundV2EarningPoolContractAddr, false);
+        await allowanceToken(sender, tokenLink, compoundV2EarningPoolContractAddr);
     }
 
     beforeEach(async () => {
@@ -165,12 +165,12 @@ describe("Earning", function () {
             isSilent);
         const ethEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
 
-        compoundEarningPoolContract = await deployContractWithProxyDeployer(
+        compoundV2EarningPoolContract = await deployContractWithProxyDeployer(
             deployer,
-            'CompoundEarningPool', 
+            'CompoundV2EarningPool', 
             [tokenCompoundAddr, tokenLinkAddr, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE],
             isSilent);
-        const linkEarningPoolContractAddr = await compoundEarningPoolContract.getAddress();
+        const linkEarningPoolContractAddr = await compoundV2EarningPoolContract.getAddress();
 
         const DEFAULT_COMBOS = [{
                 creditRating: 0,
@@ -226,7 +226,7 @@ describe("Earning", function () {
         );
 
         await aaveEarningPoolContract.setInvoker(await toTestContract.getAddress());
-        await compoundEarningPoolContract.setInvoker(await toTestContract.getAddress());
+        await compoundV2EarningPoolContract.setInvoker(await toTestContract.getAddress());
         await earningSwapRouterContract.setInvoker(await toTestContract.getAddress());
     });
 
@@ -387,7 +387,7 @@ describe("Earning", function () {
     describe('Combo add and remove test', () => {
         const makeCombo = async (i: number) => {
             const ethEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
-            const linkEarningPoolContractAddr = await compoundEarningPoolContract.getAddress();
+            const linkEarningPoolContractAddr = await compoundV2EarningPoolContract.getAddress();
             return {
                 creditRating: 0,
                 entries: [{
@@ -429,7 +429,7 @@ describe("Earning", function () {
             const connect = earningContract.connect(deployer);
 
             const ethEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
-            const linkEarningPoolContractAddr = await compoundEarningPoolContract.getAddress();
+            const linkEarningPoolContractAddr = await compoundV2EarningPoolContract.getAddress();
 
             const errorCombo = {
                 creditRating: 4,
@@ -520,11 +520,11 @@ describe("Earning", function () {
             await aaveEarningPool.connect(deployer).setMaxInterestRate(100);
             expect(await connect.averageAPY(0)).to.eq(365);
 
-            const compoundEarningPool = CompoundEarningPool__factory.connect(await compoundEarningPoolContract.getAddress(), deployer);
-            await compoundEarningPool.setMaxInterestRate(100);
+            const compoundV2EarningPool = CompoundV2EarningPool__factory.connect(await compoundV2EarningPoolContract.getAddress(), deployer);
+            await compoundV2EarningPool.setMaxInterestRate(100);
             expect(await connect.averageAPY(0)).to.eq(50);
 
-            await expect(compoundEarningPool.setMaxPerUserDeposit(100)).to.emit(compoundEarningPool, 'UpdatedMaxPerUserDeposit');
+            await expect(compoundV2EarningPool.setMaxPerUserDeposit(100)).to.emit(compoundV2EarningPool, 'UpdatedMaxPerUserDeposit');
         });
 
         it('averageAPY but earning id not exist', async() => {

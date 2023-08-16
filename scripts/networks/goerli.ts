@@ -40,10 +40,10 @@ export async function makeConfig(): Promise<Config> {
     }
 }
 
-export async function deployEarningPoolContracts(config: Config, deployAaveEarningPool: Function, deployCompoundEarningPool: Function): Promise<{[key: string]: Contract}> {
+export async function deployEarningPoolContracts(config: Config, deployAaveEarningPool: Function, deployCompoundV2EarningPool: Function): Promise<{[key: string]: Contract}> {
     return {
         'WETH': await deployAaveEarningPool(config.ethTokenAddress),
-        'DAI': await deployCompoundEarningPool(config.daiTokenAddress),
+        'DAI': await deployCompoundV2EarningPool(config.daiTokenAddress),
     }
 }
 

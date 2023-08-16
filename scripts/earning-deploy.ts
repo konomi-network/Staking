@@ -22,17 +22,17 @@ async function main() {
             return await deployContractWithProxy(deployer, 'AaveEarningPool', args);
         }
 
-        const deployCompoundEarningPool = async(earningTokenAddress: string): Promise<Contract> => {
+        const deployCompoundV2EarningPool = async(earningTokenAddress: string): Promise<Contract> => {
             const args = [
                 systemConfig.cTokenAddress,
                 earningTokenAddress,
                 systemConfig.maxPerUserDeposit,
                 systemConfig.maxInterestRate
             ];
-            return await deployContractWithProxy(deployer, 'CompoundEarningPool', args);
+            return await deployContractWithProxy(deployer, 'CompoundV2EarningPool', args);
         }
         
-        const earningPoolContracts = await env.deployEarningPoolContracts(config, deployAaveEarningPool, deployCompoundEarningPool);
+        const earningPoolContracts = await env.deployEarningPoolContracts(config, deployAaveEarningPool, deployCompoundV2EarningPool);
 
         const combos = await env.makeCombos(config, earningPoolContracts);
 

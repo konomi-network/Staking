@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./EarningPool.sol";
 
-import "./interfaces/ICompound.sol";
+import "./interfaces/ICompoundV2.sol";
 
 import "./libraries/WadMath.sol";
 import "./libraries/MathUtils.sol";
@@ -13,7 +13,7 @@ import "./libraries/MathUtils.sol";
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
-contract CompoundEarningPool is EarningPool {
+contract CompoundV2EarningPool is EarningPool {
     using WadMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -46,7 +46,7 @@ contract CompoundEarningPool is EarningPool {
         unchecked {
             supplyRatePerYear = (compoundInterest - WadMath.WAD) / RESERVED_RATE;
         }
-        // console.log(">>> CompoundEarningPool _apy:", supplyRatePerBlock, compoundInterest, supplyRatePerYear);
+        // console.log(">>> CompoundV2EarningPool _apy:", supplyRatePerBlock, compoundInterest, supplyRatePerYear);
     }
 
     function _depositStakingToken(address onBehalfOf, uint256 amount) override internal virtual {
