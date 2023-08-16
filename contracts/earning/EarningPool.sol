@@ -142,7 +142,7 @@ abstract contract EarningPool is IEarningPool, ReentrancyGuard, AccessControlUpg
      * @dev get current time
      */
     function currentTime() public view returns (uint256) {
-        return block.number;
+        return block.timestamp;
     }
 
     /**

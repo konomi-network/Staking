@@ -52,7 +52,7 @@ contract MockAavePool {
         data.currentLiquidityRate = 16393529817768722931310203 * n;
         data.lastUpdateTimestamp = 1;
 
-        console.log(">>> MockAavePool supplyRatePerYear:", data.currentLiquidityRate, block.number);
+        console.log(">>> MockAavePool supplyRatePerYear:", data.currentLiquidityRate, block.number, block.timestamp);
     }
 
     function mockN(uint128 _n) external {

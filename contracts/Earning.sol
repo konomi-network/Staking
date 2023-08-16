@@ -317,7 +317,7 @@ contract Earning is IEarning, ReentrancyGuard, AccessControlUpgradeable, Pausabl
      * @dev get current time
      */
     function currentTime() public view returns (uint256) {
-        return block.number;
+        return block.timestamp;
     }
 
     /**
