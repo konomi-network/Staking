@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import "./interfaces/IEarningPool.sol";
 import "../libraries/utils/ReentrancyGuard.sol";
-import "./libraries/MathUtils.sol";
+import "../libraries/utils/MathUtils.sol";
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";

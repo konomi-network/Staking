@@ -7,8 +7,8 @@ import "./EarningPool.sol";
 
 import "./interfaces/ICompoundV2.sol";
 
-import "./libraries/WadMath.sol";
-import "./libraries/MathUtils.sol";
+import "../libraries/utils/WadMath.sol";
+import "../libraries/utils/MathUtils.sol";
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
