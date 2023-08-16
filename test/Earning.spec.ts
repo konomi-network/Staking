@@ -24,11 +24,13 @@ import {
 import {
     AaveEarningPool__factory,
     CompoundV2EarningPool__factory,
+    CompoundV3EarningPool__factory,
 } from '../typechain-types/factories/contracts/earning';
 import { MockAavePool } from '../typechain-types/contracts/test/MockAavePool';
 import { AaveEarningPool } from '../typechain-types/contracts/earning/AaveEarningPool';
 import { CompoundV2EarningPool } from '../typechain-types/contracts/earning/CompoundV2EarningPool';
 import { EarningSwapRouter } from '../typechain-types/contracts/EarningSwapRouter';
+import { CompoundV3EarningPool } from '../typechain-types/contracts/earning/CompoundV3EarningPool';
 
 // platform fee, i.e. 1000 represents 1%
 const PLATFORM_FEE = 1000;
@@ -57,11 +59,15 @@ describe("Earning", function () {
     let token: Contract;
     let tokenEth: Contract;
     let tokenLink: Contract;
+    let tokenUsdc: Contract;
+
     let tokenAave: Contract;
-    let tokenCompound: Contract;
+    let tokenCToken: Contract;
+    let tokenComet: Contract;
 
     let aaveEarningPool: AaveEarningPool;
     let compoundV2EarningPool: CompoundV2EarningPool;
+    let compoundV3EarningPool: CompoundV3EarningPool;
 
     let aavePool: MockAavePool;
 
@@ -98,30 +104,39 @@ describe("Earning", function () {
         await transferToken(token, senderAddr);
         await transferToken(tokenEth, senderAddr);
         await transferToken(tokenLink, senderAddr);
+        await transferToken(tokenUsdc, senderAddr);
         
         const testContractAddr = await toTestContract.getAddress();
         await allowanceToken(sender, token, testContractAddr);
         await allowanceToken(sender, tokenEth, testContractAddr);
         await allowanceToken(sender, tokenLink, testContractAddr);
+        await allowanceToken(sender, tokenUsdc, testContractAddr);
         
         const universalRouterAddr = await universalRouterContract.getAddress();
         await transferToken(tokenEth, universalRouterAddr);
         await transferToken(tokenLink, universalRouterAddr);
+        await transferToken(tokenUsdc, universalRouterAddr);
         await allowanceToken(sender, tokenEth, universalRouterAddr);
         await allowanceToken(sender, tokenLink, universalRouterAddr);
+        await allowanceToken(sender, tokenUsdc, universalRouterAddr);
 
-        const earningSwapRouterContractAddr = await earningSwapRouter.getAddress();
-        await allowanceToken(sender, token, earningSwapRouterContractAddr);
-        await allowanceToken(sender, tokenEth, earningSwapRouterContractAddr);
-        await allowanceToken(sender, tokenLink, earningSwapRouterContractAddr);
+        const earningSwapRouterAddr = await earningSwapRouter.getAddress();
+        await allowanceToken(sender, token, earningSwapRouterAddr);
+        await allowanceToken(sender, tokenEth, earningSwapRouterAddr);
+        await allowanceToken(sender, tokenLink, earningSwapRouterAddr);
+        await allowanceToken(sender, tokenUsdc, earningSwapRouterAddr);
 
-        const aaveEarningPoolContractAddr = await aaveEarningPool.getAddress();
-        await allowanceToken(deployer, tokenEth, aaveEarningPoolContractAddr, false);
-        await allowanceToken(sender, tokenEth, aaveEarningPoolContractAddr);
+        const aaveEarningPoolAddr = await aaveEarningPool.getAddress();
+        await allowanceToken(deployer, tokenEth, aaveEarningPoolAddr, false);
+        await allowanceToken(sender, tokenEth, aaveEarningPoolAddr);
 
-        const compoundV2EarningPoolContractAddr = await compoundV2EarningPool.getAddress();
-        await allowanceToken(deployer, tokenLink, compoundV2EarningPoolContractAddr, false);
-        await allowanceToken(sender, tokenLink, compoundV2EarningPoolContractAddr);
+        const compoundV2EarningPoolAddr = await compoundV2EarningPool.getAddress();
+        await allowanceToken(deployer, tokenLink, compoundV2EarningPoolAddr, false);
+        await allowanceToken(sender, tokenLink, compoundV2EarningPoolAddr);
+
+        const compoundV3EarningPoolAddr = await compoundV3EarningPool.getAddress();
+        await allowanceToken(deployer, tokenUsdc, compoundV3EarningPoolAddr, false);
+        await allowanceToken(sender, tokenUsdc, compoundV3EarningPoolAddr);
     }
 
     beforeEach(async () => {
@@ -132,8 +147,11 @@ describe("Earning", function () {
         token = await deployContractWithDeployer(deployer, mockErc20ContractName, ['USDA', 'USDA'], isSilent);
         tokenEth = await deployContractWithDeployer(deployer, mockErc20ContractName, ['ETH', 'ETH'], isSilent);
         tokenLink = await deployContractWithDeployer(deployer, mockErc20ContractName, ['LINK', 'LINK'], isSilent);
+        tokenUsdc = await deployContractWithDeployer(deployer, mockErc20ContractName, ['USDC', 'USDC'], isSilent);
+
         tokenAave = await deployContractWithProxyDeployer(deployer, 'MockAToken', ['AAVE ERC20', 'aERC20'], isSilent);
-        tokenCompound = await deployContractWithDeployer(deployer, 'MockCToken', [], isSilent);
+        tokenCToken = await deployContractWithDeployer(deployer, 'MockCToken', [], isSilent);
+        tokenComet = await deployContractWithDeployer(deployer, 'MockComet', [], isSilent);
 
         universalRouterContract = await deployContractWithDeployer(deployer, 'MockSwapRouter', [], isSilent);
         permit2Contract = await deployContractWithDeployer(deployer, 'MockPermit2', [], isSilent);
@@ -141,6 +159,11 @@ describe("Earning", function () {
         const tokenAddr = await token.getAddress();
         const tokenEthAddr = await tokenEth.getAddress();
         const tokenLinkAddr = await tokenLink.getAddress();
+        const tokenUsdcAddr = await tokenUsdc.getAddress();
+
+        const tokenAaveAddr = await tokenAave.getAddress();
+        const tokenCTokenAddr = await tokenCToken.getAddress();
+        const tokenCometAddr = await tokenComet.getAddress();
 
         const universalRouterAddr = await universalRouterContract.getAddress();
         const permit2Addr = await permit2Contract.getAddress();
@@ -150,14 +173,11 @@ describe("Earning", function () {
             permit2Addr
         ], isSilent);
         earningSwapRouter = EarningSwapRouter__factory.connect(await mockEarningSwapRouter.getAddress(), deployer);
-        const earningSwapRouterContractAddress = await earningSwapRouter.getAddress();
+        const earningSwapRouterAddress = await earningSwapRouter.getAddress();
 
         const mockAavePool = await deployContractWithDeployer(deployer, 'MockAavePool', [], isSilent);
         aavePool = MockAavePool__factory.connect(await mockAavePool.getAddress(), deployer);
         const aavePoolAddr = await aavePool.getAddress();
-
-        const tokenAaveAddr = await tokenAave.getAddress();
-        const tokenCompoundAddr = await tokenCompound.getAddress();
 
         await aavePool.addAToken(tokenAddr, tokenAaveAddr);
         await aavePool.addAToken(tokenEthAddr, tokenAaveAddr);
@@ -169,15 +189,23 @@ describe("Earning", function () {
             [aavePoolAddr, tokenAaveAddr, tokenEthAddr, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE],
             isSilent);
         aaveEarningPool = AaveEarningPool__factory.connect(await mockAaveEarningPool.getAddress(), deployer);
-        const ethEarningPoolContractAddr = await aaveEarningPool.getAddress();
+        const ethEarningPoolAddr = await aaveEarningPool.getAddress();
 
         const mockCompoundV2EarningPool = await deployContractWithProxyDeployer(
             deployer,
             'CompoundV2EarningPool', 
-            [tokenCompoundAddr, tokenLinkAddr, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE],
+            [tokenCTokenAddr, tokenLinkAddr, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE],
             isSilent);
         compoundV2EarningPool = CompoundV2EarningPool__factory.connect(await mockCompoundV2EarningPool.getAddress(), deployer);
-        const linkEarningPoolContractAddr = await compoundV2EarningPool.getAddress();
+        const linkEarningPoolAddr = await compoundV2EarningPool.getAddress();
+
+        const mockCompoundV3EarningPool = await deployContractWithProxyDeployer(
+            deployer,
+            'CompoundV3EarningPool', 
+            [tokenCometAddr, tokenUsdcAddr, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE],
+            isSilent);
+        compoundV3EarningPool = CompoundV3EarningPool__factory.connect(await mockCompoundV3EarningPool.getAddress(), deployer);
+        const usdcEarningPoolAddr = await compoundV3EarningPool.getAddress();
 
         const DEFAULT_COMBOS = [{
                 creditRating: 0,
@@ -187,7 +215,7 @@ describe("Earning", function () {
                             id: 0,
                             name: 'ETH',
                             token: await tokenEth.getAddress(),
-                            earningContract: ethEarningPoolContractAddr,
+                            earningContract: ethEarningPoolAddr,
                         }
                     },
                     {
@@ -196,7 +224,7 @@ describe("Earning", function () {
                             id: 1,
                             name: 'LINK',
                             token: await tokenLink.getAddress(),
-                            earningContract: linkEarningPoolContractAddr,
+                            earningContract: linkEarningPoolAddr,
                         }
                     }
                 ]
@@ -207,18 +235,18 @@ describe("Earning", function () {
                         weight: 60,
                         earning: {
                             id: 10,
-                            name: 'sETH',
+                            name: 'ETH',
                             token: await tokenEth.getAddress(),
-                            earningContract: ethEarningPoolContractAddr,
+                            earningContract: ethEarningPoolAddr,
                         }
                     },
                     {
                         weight: 40,
                         earning: {
                             id: 11,
-                            name: 'sLINK',
-                            token: await tokenLink.getAddress(),
-                            earningContract: linkEarningPoolContractAddr,
+                            name: 'USDC',
+                            token: await tokenUsdc.getAddress(),
+                            earningContract: usdcEarningPoolAddr,
                         }
                     }
                 ]
@@ -228,12 +256,14 @@ describe("Earning", function () {
         toTestContract = await deployContractWithProxyDeployer(
             deployer,
             'Earning',
-            [tokenAddr, PLATFORM_FEE, earningSwapRouterContractAddress, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS],
+            [tokenAddr, PLATFORM_FEE, earningSwapRouterAddress, MAX_PER_USER_DEPOSIT, MIN_DEPOSIT_AMOUNT, DEFAULT_COMBOS],
             isSilent,
         );
 
         await aaveEarningPool.setInvoker(await toTestContract.getAddress());
         await compoundV2EarningPool.setInvoker(await toTestContract.getAddress());
+        await compoundV3EarningPool.setInvoker(await toTestContract.getAddress());
+
         await earningSwapRouter.setInvoker(await toTestContract.getAddress());
     });
 
@@ -393,8 +423,8 @@ describe("Earning", function () {
 
     describe('Combo add and remove test', () => {
         const makeCombo = async (i: number) => {
-            const ethEarningPoolContractAddr = await aaveEarningPool.getAddress();
-            const linkEarningPoolContractAddr = await compoundV2EarningPool.getAddress();
+            const ethEarningPoolAddr = await aaveEarningPool.getAddress();
+            const linkEarningPoolAddr = await compoundV2EarningPool.getAddress();
             return {
                 creditRating: 0,
                 entries: [{
@@ -403,7 +433,7 @@ describe("Earning", function () {
                             id: i,
                             name: 'ETH' + i,
                             token: await tokenEth.getAddress(),
-                            earningContract: ethEarningPoolContractAddr,
+                            earningContract: ethEarningPoolAddr,
                         }
                     },
                     {
@@ -412,7 +442,7 @@ describe("Earning", function () {
                             id: i + 1,
                             name: 'LINK' + i,
                             token: await tokenLink.getAddress(),
-                            earningContract: linkEarningPoolContractAddr,
+                            earningContract: linkEarningPoolAddr,
                         }
                     }
                 ]
@@ -435,8 +465,8 @@ describe("Earning", function () {
             const earningContract = Earning__factory.connect(testContractAddr);
             const connect = earningContract.connect(deployer);
 
-            const ethEarningPoolContractAddr = await aaveEarningPool.getAddress();
-            const linkEarningPoolContractAddr = await compoundV2EarningPool.getAddress();
+            const ethEarningPoolAddr = await aaveEarningPool.getAddress();
+            const linkEarningPoolAddr = await compoundV2EarningPool.getAddress();
 
             const errorCombo = {
                 creditRating: 4,
@@ -446,7 +476,7 @@ describe("Earning", function () {
                             id: 20,
                             name: 'ETH',
                             token: await tokenEth.getAddress(),
-                            earningContract: ethEarningPoolContractAddr,
+                            earningContract: ethEarningPoolAddr,
                         }
                     },
                     {
@@ -455,7 +485,7 @@ describe("Earning", function () {
                             id: 21,
                             name: 'LINK',
                             token: await tokenLink.getAddress(),
-                            earningContract: linkEarningPoolContractAddr,
+                            earningContract: linkEarningPoolAddr,
                         }
                     }
                 ]
@@ -512,9 +542,10 @@ describe("Earning", function () {
             await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
             expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
 
-            const cToken = MockCToken__factory.connect(await tokenCompound.getAddress());
+            const cToken = MockCToken__factory.connect(await tokenCToken.getAddress());
 
             expect(await connect.averageAPY(0)).to.eq(314);
+            expect(await connect.averageAPY(1)).to.eq(58);
 
             await advanceBlocks(10);
             // mock dynamic change AP*
@@ -541,6 +572,49 @@ describe("Earning", function () {
     })
 
     describe('Redeem', () => {
+        it('redeem EarningIsEmpty', async() => {
+            const testContractAddr = await toTestContract.getAddress();
+
+            const earning = Earning__factory.connect(testContractAddr, sender);
+
+            await expect(earning.redeem(1)).to.revertedWithCustomError(earning, 'EarningIsEmpty');
+        });
+
+        it('redeem EarningIdNotExist', async() => {
+            await transferTokens();
+
+            const senderAddr = await sender.getAddress();
+            const testContractAddr = await toTestContract.getAddress();
+            const tokenUsdcAddr = await tokenUsdc.getAddress();
+
+            const earning = Earning__factory.connect(testContractAddr, sender);
+
+            let amount = 1000n;
+            await expect(earning.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
+
+            let userDetail = await earning.listUserEarnDetail();
+            expect(userDetail.length).to.eq(2);
+
+            amount = 2000n;
+            await expect(earning.deposit(1, amount)).to.emit(toTestContract, 'Deposited');
+
+            userDetail = await earning.listUserEarnDetail();
+            expect(userDetail.length).to.eq(4);
+
+            await expect(earning.redeem(100)).to.revertedWithCustomError(earning, 'EarningIdNotExist');
+
+            const usdcAmount = BigInt(800 - calcFee(800));
+            expect(userDetail[3].earningId).to.eq(11);
+            expect(userDetail[3].amount).to.eq(usdcAmount);
+
+            await expect(earning.redeem(3)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 3, tokenUsdcAddr, usdcAmount, 0);
+
+            userDetail = await earning.listUserEarnDetail();
+            expect(userDetail.length).to.eq(3);
+
+            await expect(earning.redeem(3)).to.revertedWithCustomError(earning, 'EarningIdNotExist');
+        });
+
         it('redeem work', async() => {
             await transferTokens();
 
@@ -549,14 +623,14 @@ describe("Earning", function () {
             const tokenEthAddr = await tokenEth.getAddress();
             const tokenLinkAddr = await tokenLink.getAddress();
 
-            const earningContract = Earning__factory.connect(testContractAddr);
+            const earning = Earning__factory.connect(testContractAddr);
 
             const SUPPLY_AMOUNT = 1000;
-            await expect(earningContract.connect(deployer).supplyReward(0, SUPPLY_AMOUNT)).to.emit(toTestContract, 'RewardPumped');
-            await expect(earningContract.connect(deployer).supplyReward(1, SUPPLY_AMOUNT)).to.emit(toTestContract, 'RewardPumped');
-            await expect(earningContract.connect(deployer).supplyReward(99, SUPPLY_AMOUNT)).to.revertedWithCustomError(earningContract, 'EarningConfigContractNotExist');
+            await expect(earning.connect(deployer).supplyReward(0, SUPPLY_AMOUNT)).to.emit(toTestContract, 'RewardPumped');
+            await expect(earning.connect(deployer).supplyReward(1, SUPPLY_AMOUNT)).to.emit(toTestContract, 'RewardPumped');
+            await expect(earning.connect(deployer).supplyReward(99, SUPPLY_AMOUNT)).to.revertedWithCustomError(earning, 'EarningConfigContractNotExist');
 
-            const connect = earningContract.connect(sender);
+            const connect = earning.connect(sender);
 
             const amount = 1000n;
             await expect(connect.deposit(0, amount)).to.emit(toTestContract, 'Deposited');
@@ -576,8 +650,6 @@ describe("Earning", function () {
             expect(userDetail[0].earningId).to.eq(1);
             expect(userDetail[0].amount).to.eq(linkAmount);
 
-            await expect(connect.redeem(1)).to.revertedWithCustomError(earningContract, 'EarningIdNotExist');
-
             // too long wait
             // await advanceBlocks(1000000);
             // await expect(connect.redeem(0)).to.emit(toTestContract, 'Redeemed').withArgs(senderAddr, 0, tokenLinkAddr, linkAmount, 1);
@@ -589,7 +661,7 @@ describe("Earning", function () {
             userDetail = await connect.listUserEarnDetail();
             expect(userDetail.length).to.eq(0);
 
-            await expect(connect.redeem(0)).to.revertedWithCustomError(earningContract, 'EarningIsEmpty');
+            await expect(connect.redeem(0)).to.revertedWithCustomError(earning, 'EarningIsEmpty');
         });
     })
 });
