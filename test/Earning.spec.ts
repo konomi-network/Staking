@@ -18,12 +18,17 @@ import {
     MockCToken__factory,
 } from '../typechain-types/factories/contracts/test';
 import {
+    EarningSwapRouter__factory,
     Earning__factory
 } from '../typechain-types/factories/contracts';
 import {
     AaveEarningPool__factory,
     CompoundV2EarningPool__factory,
 } from '../typechain-types/factories/contracts/earning';
+import { MockAavePool } from '../typechain-types/contracts/test/MockAavePool';
+import { AaveEarningPool } from '../typechain-types/contracts/earning/AaveEarningPool';
+import { CompoundV2EarningPool } from '../typechain-types/contracts/earning/CompoundV2EarningPool';
+import { EarningSwapRouter } from '../typechain-types/contracts/EarningSwapRouter';
 
 // platform fee, i.e. 1000 represents 1%
 const PLATFORM_FEE = 1000;
@@ -55,12 +60,12 @@ describe("Earning", function () {
     let tokenAave: Contract;
     let tokenCompound: Contract;
 
-    let aaveEarningPoolContract: Contract;
-    let compoundV2EarningPoolContract: Contract;
+    let aaveEarningPool: AaveEarningPool;
+    let compoundV2EarningPool: CompoundV2EarningPool;
 
-    let aavePoolContract: Contract;
+    let aavePool: MockAavePool;
 
-    let earningSwapRouterContract: Contract;
+    let earningSwapRouter: EarningSwapRouter;
     let universalRouterContract: Contract;
     let permit2Contract: Contract;
 
@@ -105,16 +110,16 @@ describe("Earning", function () {
         await allowanceToken(sender, tokenEth, universalRouterAddr);
         await allowanceToken(sender, tokenLink, universalRouterAddr);
 
-        const earningSwapRouterContractAddr = await earningSwapRouterContract.getAddress();
+        const earningSwapRouterContractAddr = await earningSwapRouter.getAddress();
         await allowanceToken(sender, token, earningSwapRouterContractAddr);
         await allowanceToken(sender, tokenEth, earningSwapRouterContractAddr);
         await allowanceToken(sender, tokenLink, earningSwapRouterContractAddr);
 
-        const aaveEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
+        const aaveEarningPoolContractAddr = await aaveEarningPool.getAddress();
         await allowanceToken(deployer, tokenEth, aaveEarningPoolContractAddr, false);
         await allowanceToken(sender, tokenEth, aaveEarningPoolContractAddr);
 
-        const compoundV2EarningPoolContractAddr = await compoundV2EarningPoolContract.getAddress();
+        const compoundV2EarningPoolContractAddr = await compoundV2EarningPool.getAddress();
         await allowanceToken(deployer, tokenLink, compoundV2EarningPoolContractAddr, false);
         await allowanceToken(sender, tokenLink, compoundV2EarningPoolContractAddr);
     }
@@ -140,37 +145,39 @@ describe("Earning", function () {
         const universalRouterAddr = await universalRouterContract.getAddress();
         const permit2Addr = await permit2Contract.getAddress();
 
-        earningSwapRouterContract = await deployContractWithProxyDeployer(deployer, 'EarningSwapRouter', [
+        const mockEarningSwapRouter = await deployContractWithProxyDeployer(deployer, 'EarningSwapRouter', [
             universalRouterAddr,
             permit2Addr
         ], isSilent);
-        const earningSwapRouterContractAddress = await earningSwapRouterContract.getAddress();
+        earningSwapRouter = EarningSwapRouter__factory.connect(await mockEarningSwapRouter.getAddress(), deployer);
+        const earningSwapRouterContractAddress = await earningSwapRouter.getAddress();
 
-        aavePoolContract = await deployContractWithDeployer(deployer, 'MockAavePool', [], isSilent);
-        const aavePool = MockAavePool__factory.connect(await aavePoolContract.getAddress(), ethers.provider);
+        const mockAavePool = await deployContractWithDeployer(deployer, 'MockAavePool', [], isSilent);
+        aavePool = MockAavePool__factory.connect(await mockAavePool.getAddress(), deployer);
         const aavePoolAddr = await aavePool.getAddress();
 
         const tokenAaveAddr = await tokenAave.getAddress();
         const tokenCompoundAddr = await tokenCompound.getAddress();
 
-        const aavePoolConnect = aavePool.connect(deployer);
-        await aavePoolConnect.addAToken(tokenAddr, tokenAaveAddr);
-        await aavePoolConnect.addAToken(tokenEthAddr, tokenAaveAddr);
-        await aavePoolConnect.addAToken(tokenLinkAddr, tokenAaveAddr);
+        await aavePool.addAToken(tokenAddr, tokenAaveAddr);
+        await aavePool.addAToken(tokenEthAddr, tokenAaveAddr);
+        await aavePool.addAToken(tokenLinkAddr, tokenAaveAddr);
 
-        aaveEarningPoolContract = await deployContractWithProxyDeployer(
+        const mockAaveEarningPool = await deployContractWithProxyDeployer(
             deployer,
             'AaveEarningPool', 
             [aavePoolAddr, tokenAaveAddr, tokenEthAddr, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE],
             isSilent);
-        const ethEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
+        aaveEarningPool = AaveEarningPool__factory.connect(await mockAaveEarningPool.getAddress(), deployer);
+        const ethEarningPoolContractAddr = await aaveEarningPool.getAddress();
 
-        compoundV2EarningPoolContract = await deployContractWithProxyDeployer(
+        const mockCompoundV2EarningPool = await deployContractWithProxyDeployer(
             deployer,
             'CompoundV2EarningPool', 
             [tokenCompoundAddr, tokenLinkAddr, MAX_PER_USER_DEPOSIT, MAX_INTEREST_RATE],
             isSilent);
-        const linkEarningPoolContractAddr = await compoundV2EarningPoolContract.getAddress();
+        compoundV2EarningPool = CompoundV2EarningPool__factory.connect(await mockCompoundV2EarningPool.getAddress(), deployer);
+        const linkEarningPoolContractAddr = await compoundV2EarningPool.getAddress();
 
         const DEFAULT_COMBOS = [{
                 creditRating: 0,
@@ -225,15 +232,15 @@ describe("Earning", function () {
             isSilent,
         );
 
-        await aaveEarningPoolContract.setInvoker(await toTestContract.getAddress());
-        await compoundV2EarningPoolContract.setInvoker(await toTestContract.getAddress());
-        await earningSwapRouterContract.setInvoker(await toTestContract.getAddress());
+        await aaveEarningPool.setInvoker(await toTestContract.getAddress());
+        await compoundV2EarningPool.setInvoker(await toTestContract.getAddress());
+        await earningSwapRouter.setInvoker(await toTestContract.getAddress());
     });
 
     describe('SetEnv', () => {
         it('setSwapRouter work', async () => {
             const testContractAddr = await toTestContract.getAddress();
-            const earningSwapRouterAddr = await earningSwapRouterContract.getAddress();
+            const earningSwapRouterAddr = await earningSwapRouter.getAddress();
 
             const contract = Earning__factory.connect(testContractAddr, deployer);
 
@@ -242,7 +249,7 @@ describe("Earning", function () {
 
         it('setSwapRouter missing role', async () => {
             const testContractAddr = await toTestContract.getAddress();
-            const earningSwapRouterAddr = await earningSwapRouterContract.getAddress();
+            const earningSwapRouterAddr = await earningSwapRouter.getAddress();
 
             const contract = Earning__factory.connect(testContractAddr, sender);
 
@@ -386,8 +393,8 @@ describe("Earning", function () {
 
     describe('Combo add and remove test', () => {
         const makeCombo = async (i: number) => {
-            const ethEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
-            const linkEarningPoolContractAddr = await compoundV2EarningPoolContract.getAddress();
+            const ethEarningPoolContractAddr = await aaveEarningPool.getAddress();
+            const linkEarningPoolContractAddr = await compoundV2EarningPool.getAddress();
             return {
                 creditRating: 0,
                 entries: [{
@@ -428,8 +435,8 @@ describe("Earning", function () {
             const earningContract = Earning__factory.connect(testContractAddr);
             const connect = earningContract.connect(deployer);
 
-            const ethEarningPoolContractAddr = await aaveEarningPoolContract.getAddress();
-            const linkEarningPoolContractAddr = await compoundV2EarningPoolContract.getAddress();
+            const ethEarningPoolContractAddr = await aaveEarningPool.getAddress();
+            const linkEarningPoolContractAddr = await compoundV2EarningPool.getAddress();
 
             const errorCombo = {
                 creditRating: 4,
@@ -506,7 +513,6 @@ describe("Earning", function () {
             expect(await token.balanceOf(senderAddr) + amount).to.eq(TEST_AMOUNT);
 
             const cToken = MockCToken__factory.connect(await tokenCompound.getAddress());
-            const aavePool = MockAavePool__factory.connect(await aavePoolContract.getAddress());
 
             expect(await connect.averageAPY(0)).to.eq(314);
 
@@ -516,11 +522,9 @@ describe("Earning", function () {
             await aavePool.connect(deployer).mockN(2);
             expect(await connect.averageAPY(0)).to.eq(399);
 
-            const aaveEarningPool = AaveEarningPool__factory.connect(await aaveEarningPoolContract.getAddress());
             await aaveEarningPool.connect(deployer).setMaxInterestRate(100);
             expect(await connect.averageAPY(0)).to.eq(365);
 
-            const compoundV2EarningPool = CompoundV2EarningPool__factory.connect(await compoundV2EarningPoolContract.getAddress(), deployer);
             await compoundV2EarningPool.setMaxInterestRate(100);
             expect(await connect.averageAPY(0)).to.eq(50);
 
