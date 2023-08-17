@@ -32,8 +32,8 @@
     "test": "npx hardhat coverage --testfiles \"test/*.ts\" --solcoverjs .solcover.js",
     "deploy": "npx hardhat run scripts/earning-deploy.ts --network ${NETWORK}",
     "upgrade": "npx hardhat run scripts/earning-upgrade.ts --network ${NETWORK}",
-    "deploy:test": "export NETWORK=localhost && npm run deploy",
-    "upgrade:test": "export NETWORK=localhost && npm run upgrade",
+    "deploy:test": "NETWORK=localhost npm run deploy",
+    "upgrade:test": "NETWORK=localhost npm run upgrade",
     "test-specific": "mocha -g"
   },
   "devDependencies": {
