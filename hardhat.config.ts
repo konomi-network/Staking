@@ -10,12 +10,12 @@ import '@openzeppelin/hardhat-upgrades';
 // load .env config
 import { config as dotenvConfig } from 'dotenv';
 import { resolve } from 'path';
-import { network } from "hardhat";
 
 dotenvConfig({ path: resolve(__dirname, './.env') });
 
 /* note: boolean environment variables are imported as strings */
 const {
+  NETWORK = '',
   DEPLOYER_PRIVATE_KEY,
 
   ETHERSCAN_KEY = '',
@@ -26,7 +26,7 @@ const {
   ARB_GOERLI_TESTNET_DEPLOYER_API_KEY
 } = process.env;
 
-const chainIds = {
+const chainIds: {[key: string]:number} = {
   'ethereum': 1,
   'ethereum-goerli': 5,
   'ethereum-sepolia': 11155111,
@@ -34,6 +34,14 @@ const chainIds = {
   'arbitrum': 42161,
   'arbitrum-goerli': 421613,
 }
+
+const solidityVersions: {[key: string]:string} = {
+  'arbitrum': '0.8.19',
+  'arbitrum-goerli': '0.8.19',
+}
+
+const solidityVersion = solidityVersions[NETWORK] ? solidityVersions[NETWORK] : '0.8.21';
+console.log(`Chain: ${NETWORK}[${chainIds[NETWORK]}] solidity version: ${solidityVersion}`)
 
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
@@ -58,7 +66,7 @@ const config: HardhatUserConfig = {
     }
   },
   solidity: {
-    version: "0.8.20",
+    version: solidityVersion,
     settings: {
       optimizer: {
         enabled: true,

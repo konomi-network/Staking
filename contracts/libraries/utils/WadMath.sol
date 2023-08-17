@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.19;
 
 library WadMath {
     // HALF_WAD expressed with extended notation as constant with operations are not supported in Yul assembly

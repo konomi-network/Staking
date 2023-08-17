@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.19;
 
 contract ErrorReporter {
     uint256 public constant NO_ERROR = 0; // support legacy return codes

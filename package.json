@@ -31,9 +31,9 @@
     "lint:fix": "yarn prettier --write **/*",
     "test": "npx hardhat coverage --testfiles \"test/*.ts\" --solcoverjs .solcover.js",
     "deploy": "npx hardhat run scripts/earning-deploy.ts --network ${NETWORK}",
-    "deploy:upgrade": "npx hardhat run scripts/earning-upgrade.ts --network ${NETWORK}",
-    "deploy:test": "npx hardhat run scripts/earning-deploy.ts --network localhost",
-    "upgrade:test": "npx hardhat run scripts/earning-upgrade.ts --network localhost",
+    "upgrade": "npx hardhat run scripts/earning-upgrade.ts --network ${NETWORK}",
+    "deploy:test": "export NETWORK=localhost && npm run deploy",
+    "upgrade:test": "export NETWORK=localhost && npm run upgrade",
     "test-specific": "mocha -g"
   },
   "devDependencies": {
