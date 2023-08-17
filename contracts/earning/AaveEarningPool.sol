@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IPool } from "@aave/core-v3/contracts/interfaces/IPool.sol";
@@ -19,7 +19,8 @@ contract AaveEarningPool is EarningPool {
     IAToken public aToken;
 
     // WadRayMath.RAY returns 1e27, which is rounded to tens of thousands, i.e. 500 represents 5%
-    uint256 internal constant RESERVED_RATE = WadRayMath.RAY / PERCENTAGE_FACTOR;
+    // uint256 internal constant RESERVED_RATE = WadRayMath.RAY / PERCENTAGE_FACTOR;
+    uint256 internal constant RESERVED_RATE = 1e23;
 
     function initialize(
         address _aavePool,

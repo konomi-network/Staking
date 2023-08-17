@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -69,7 +69,7 @@ contract Earning is IEarning, ReentrancyGuard, AccessControlUpgradeable, Pausabl
     uint24 private constant ISWAP_POOL_FEE = 3000;
 
     // For upgrading contract versions
-    uint16 public constant VERSION = 1;
+    uint16 public constant VERSION = 4;
 
     // Maximum number of earning per user
     uint16 private constant MAX_EARNING_PER_USER = 1000;

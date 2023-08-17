@@ -40,8 +40,10 @@ async function main() {
         let userDetail = await earning.listUserEarnDetail();
         console.log(`\n>>> Earning ${userDetail.length} userEarnDetail`);
 
-        console.log(`\n>>> Earning deposit: ${await earning.deposit(0, expandTo18Decimals(1000))}`);
-        
+        // await earning.setMinDepositAmount(1000);
+
+        // console.log(`\n>>> Earning deposit: ${await earning.deposit(1, 1000)}`);
+
         userDetail = await earning.listUserEarnDetail();
         console.log(`\n>>> Earning ${userDetail.length} userEarnDetail after deposit`);
     });

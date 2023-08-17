@@ -1,6 +1,8 @@
 import { network } from 'hardhat';
 import IChain from './networks/IChain';
-import { UpgradeContract, loadCacheContractAddress, tryExecute } from './utils/deploy.util';
+import { UpgradeContract, loadCacheContract, loadCacheContractAddress, tryExecute } from './utils/deploy.util';
+import { EarningSwapRouter } from '../typechain-types/contracts/EarningSwapRouter';
+import { Earning } from '../typechain-types/contracts/Earning';
 
 async function main() {
     await tryExecute(async (deployer) => {
@@ -12,50 +14,21 @@ async function main() {
         const config = await chain.makeConfig();
         const systemConfig = config.systemConfig;
 
-        const contractConfigs ={
-            'Earning': {
-                contractName: 'Earning',
-                args: [
-                    systemConfig.earningTokenAddress,
-                    systemConfig.platformFee,
-                    '0x41F0460047DF21c305A43D784c636Ac502Bf5e9B',
-                    systemConfig.maxPerUserDeposit,
-                    systemConfig.minDepositAmount,
-                    '[object Object],[object Object]'
-                ]
-            },
-            'daiAaveEarningPool': {
-                contractName: 'AaveEarningPool',
-                args: [
-                    systemConfig.aavePoolAddress,
-                    systemConfig.aTokenAddress,
-                    '0x68194a729c2450ad26072b3d33adacbcef39d574',
-                    systemConfig.maxPerUserDeposit,
-                    systemConfig.maxInterestRate
-                ]
-            },
-            'linkAaveEarningPool': {
-                contractName: 'AaveEarningPool',
-                args: [
-                    systemConfig.aavePoolAddress,
-                    systemConfig.aTokenAddress,
-                    '0x8a0E31de20651fe58A369fD6f76c21A8FF7f8d42',
-                    systemConfig.maxPerUserDeposit,
-                    systemConfig.maxInterestRate
-                ]
-            },
-            'EarningSwapRouter': {
-                contractName: 'EarningSwapRouter',
-                args: [
-                    systemConfig.uniswapRouterAddress,
-                    systemConfig.uniswapPermit2Address,
-                ]
-            }
-        }
+        const earningSwapRouter = await loadCacheContract(deployer, 'EarningSwapRouter', [
+            systemConfig.uniswapRouterAddress,
+            systemConfig.uniswapPermit2Address,
+        ]) as unknown as EarningSwapRouter;
 
-        const contractConfig = contractConfigs['EarningSwapRouter'];
-        const cacheContractAddress = loadCacheContractAddress(contractConfig.contractName, contractConfig.args)
-        await UpgradeContract(deployer, contractConfig.contractName, cacheContractAddress);
+        const earning = await loadCacheContract(deployer, 'Earning', [
+            systemConfig.earningTokenAddress,
+            systemConfig.platformFee,
+            await earningSwapRouter.getAddress(),
+            systemConfig.maxPerUserDeposit,
+            systemConfig.minDepositAmount,
+            '[object Object],[object Object]'
+        ]) as unknown as Earning;
+
+        await UpgradeContract(deployer, 'Earning', await earning.getAddress());
     });
 }
 

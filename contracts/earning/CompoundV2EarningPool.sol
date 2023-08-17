@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -22,7 +22,8 @@ contract CompoundV2EarningPool is EarningPool {
     uint256 internal constant BLOCKS_PER_DAY = 5760;
     uint256 internal constant DAYS_PER_YEAR = 365;
 
-    uint256 internal constant RESERVED_RATE = WadMath.WAD / PERCENTAGE_FACTOR;
+    // uint256 internal constant RESERVED_RATE = WadMath.WAD / PERCENTAGE_FACTOR;
+    uint256 internal constant RESERVED_RATE = 1e14;
 
     function initialize(
         address _cToken,
