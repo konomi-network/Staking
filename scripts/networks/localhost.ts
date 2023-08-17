@@ -1,6 +1,6 @@
 import { ethers } from 'hardhat';
 import { Contract } from 'ethers';
-import { Combo, ComboEntry, makeCombo } from '../utils/combo.util';
+import { Combo, ComboEntry, TokenInfo, makeCombo, makeEarningToken } from '../utils/combo.util';
 import { SystemConfig } from '../utils/config.util';
 import {
     deployContract,
@@ -15,6 +15,7 @@ export interface Config extends IConfig {
     // custom config
     ethTokenAddress: string;
     linkTokenAddress: string;
+    usdcTokenAddress: string;
 }
 
 export default class Chain extends IChain {
@@ -30,6 +31,7 @@ export default class Chain extends IChain {
 
         const ethToken = await deployContract(deployer, 'MockERC20', ['ETH', 'ETH']);
         const linkToken = await deployContract(deployer, 'MockERC20', ['LINK', 'LINK']);
+        const usdcToken = await deployContract(deployer, 'MockERC20', ['USDC', 'USDC']);
         
         const earningToken = await deployContract(deployer, 'MockERC20', ['USDA', 'USDA']);
         
@@ -56,34 +58,53 @@ export default class Chain extends IChain {
             
             ethTokenAddress: await ethToken.getAddress(),
             linkTokenAddress: await linkToken.getAddress(),
+            usdcTokenAddress: await usdcToken.getAddress(),
         }
-    }
-
-    async makeCombos(config: Config, earningPoolContracts: { [key: string]: Contract; }): Promise<Combo[]> {
-        const tokenWeth: ComboEntry = makeCombo(30, {
-            id: 0,
-            name: 'WETH',
-            token: config.ethTokenAddress,
-            earningContract: await earningPoolContracts.WETH.getAddress(),
-        });
-    
-        const tokenLink: ComboEntry = makeCombo(70, {
-            id: 1,
-            name: 'LINK',
-            token: config.linkTokenAddress,
-            earningContract: await earningPoolContracts.LINK.getAddress(),
-        });
-    
-        return [{
-            creditRating: 0,
-            entries: [tokenWeth, tokenLink]
-        }]  
     }
 
     async deployEarningPools(config: Config): Promise<{ [key: string]: Contract}> {
         return {
             'WETH': await this.deployAaveEarningPool(config, config.ethTokenAddress),
             'LINK': await this.deployCompoundV2EarningPool(config, config.linkTokenAddress),
+            'USDC': await this.deployCompoundV3EarningPool(config, config.usdcTokenAddress),
         }
+    }
+
+    async makeCombos(config: Config, earningPoolContracts: { [key: string]: Contract; }): Promise<Combo[]> {
+        const tokenWeth: TokenInfo = {
+            name: 'WETH',
+            token: config.ethTokenAddress,
+            earningContract: await earningPoolContracts.WETH.getAddress(),
+        };
+    
+        const tokenLink: TokenInfo = {
+            name: 'LINK',
+            token: config.linkTokenAddress,
+            earningContract: await earningPoolContracts.LINK.getAddress(),
+        };
+
+        const tokenUsdc: TokenInfo = {
+            name: 'USDC',
+            token: config.usdcTokenAddress,
+            earningContract: await earningPoolContracts.USDC.getAddress(),
+        };
+    
+        const combos = [
+            {
+                creditRating: 0,
+                entries: [makeCombo(30, makeEarningToken(0, tokenWeth)), makeCombo(70, makeEarningToken(1, tokenLink))]
+            },
+            {
+                creditRating: 1,
+                entries: [makeCombo(40, makeEarningToken(2, tokenUsdc)), makeCombo(60, makeEarningToken(3, tokenLink))]
+            }
+        ];
+
+        for (const combo of combos) {
+            console.log(`{\ncreditRating: ${combo.creditRating},`);
+            console.log('entries:', combo.entries);
+            console.log('}')
+        }
+        return combos;
     }
 }
