@@ -1,67 +1,37 @@
 import { network } from 'hardhat';
-import { Contract } from 'ethers';
-import { tryExecute, deployContractWithProxy, loadSystemConfig } from './utils/deploy.util';
+import { tryExecute } from './utils/deploy.util';
+import IChain from './networks/IChain';
 
 async function main() {
     await tryExecute(async (deployer) => {
-        const env = require(`./networks/${network.name}`)
-
+        const Chain = require(`./networks/${network.name}`).default;
+        const chain: IChain = new Chain();
+        
         console.log(`Deploying contracts with account: \x1b[33m${await deployer.getAddress()}\x1b[0m`);
 
-        const config = await env.makeConfig();
-        const systemConfig = await loadSystemConfig();
-
-        const deployAaveEarningPool = async(earningTokenAddress: string): Promise<Contract> => {
-            const args = [
-                systemConfig.aavePoolAddress,
-                systemConfig.aTokenAddress,
-                earningTokenAddress,
-                systemConfig.maxPerUserDeposit,
-                systemConfig.maxInterestRate
-            ];
-            return await deployContractWithProxy(deployer, 'AaveEarningPool', args);
-        }
-
-        const deployCompoundV2EarningPool = async(earningTokenAddress: string): Promise<Contract> => {
-            const args = [
-                systemConfig.cTokenAddress,
-                earningTokenAddress,
-                systemConfig.maxPerUserDeposit,
-                systemConfig.maxInterestRate
-            ];
-            return await deployContractWithProxy(deployer, 'CompoundV2EarningPool', args);
-        }
+        const config = await chain.makeConfig();
         
-        const earningPoolContracts = await env.deployEarningPoolContracts(config, deployAaveEarningPool, deployCompoundV2EarningPool);
+        const earningPools = await chain.deployEarningPools(config);
 
-        const combos = await env.makeCombos(config, earningPoolContracts);
+        const combos = await chain.makeCombos(config, earningPools);
 
-        const earningSwapContract = await deployContractWithProxy(deployer, 'EarningSwapRouter', [
-            systemConfig.uniswapRouterAddress,
-            systemConfig.uniswapPermit2Address,
-        ]);
+        const earningSwapRouter = await chain.deployEarningSwapRouter(config);
+        const earningSwapRouterAddr = await earningSwapRouter.getAddress();
 
-        const contract = await deployContractWithProxy(deployer, 'Earning', [
-            systemConfig.earningTokenAddress,
-            systemConfig.platformFee,
-            await earningSwapContract.getAddress(),
-            systemConfig.maxPerUserDeposit,
-            systemConfig.minDepositAmount,
-            combos
-        ]);
+        const contract = await chain.deployEarning(config, earningSwapRouterAddr, combos);
 
-        for (const key of Object.keys(earningPoolContracts)) {
+        for (const key of Object.keys(earningPools)) {
             try {
-                await earningPoolContracts[key].setInvoker(await contract.getAddress());
+                await earningPools[key].setInvoker(await contract.getAddress());
             } catch (error) {
                 console.error(`${key} setInvoker failed by ${error}`)
             }
         }
 
         try {
-            await earningSwapContract.setInvoker(await contract.getAddress());
+            await earningSwapRouter.setInvoker(await contract.getAddress());
         } catch (error) {
-            console.error(`earningSwapContract setInvoker failed by ${error}`)
+            console.error(`earningSwapRouter setInvoker failed by ${error}`)
         }
     });
 }

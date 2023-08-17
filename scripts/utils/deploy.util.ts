@@ -2,7 +2,6 @@ import fs from 'fs';
 import { Contract, Signer } from 'ethers';
 import { ethers, upgrades, artifacts, network } from 'hardhat';
 import Web3 from 'web3';
-import { SystemConfig } from './config.util';
 
 function load(path: string): any {
   if (!fs.existsSync(path)) {
@@ -13,6 +12,10 @@ function load(path: string): any {
 
 function write(cache: any, path: string) {
   fs.writeFileSync(path, JSON.stringify(cache, null, 2));
+}
+
+function deployCacheName(): string {
+  return `./.deploy-cache.${network.name}.json`;
 }
 
 export function expandTo18Decimals(n: number): bigint {
@@ -51,27 +54,22 @@ export async function balanceOf(who: string) {
   return web3.utils.fromWei(await web3.eth.getBalance(who), 'ether');
 }
 
-export async function loadSystemConfig(): Promise<SystemConfig> {
-  const env = require(`../networks/${network.name}`)
-  return (await env.makeConfig()).systemConfig;
-}
-
 export function loadCacheContractAddress(contractName: string, args: any[]): string {
-  const cachePath = `./.deploy-cache.${network.name}.json`;
+  const cachePath = deployCacheName();
 
   const json = load(cachePath);
   const cacheName = [contractName, ...args].join('|');
-  console.log(`cacheDeployContract cacheName: ${cacheName} with address: ${json[cacheName]}`)
+  console.log(`loadCacheContractAddress cacheName: ${cacheName} with address: ${json[cacheName]}`)
 
   return json[cacheName];
 }
 
 export async function loadCacheContract(deployer: Signer, contractName: string, args: any[]): Promise<Contract> {
-  const cachePath = `./.deploy-cache.${network.name}.json`;
+  const cachePath = deployCacheName();
 
   const json = load(cachePath);
   const cacheName = [contractName, ...args].join('|');
-  console.log(`cacheDeployContract cacheName: ${cacheName} with address: ${json[cacheName]}`)
+  console.log(`loadCacheContract cacheName: ${cacheName} with address: ${json[cacheName]}`)
 
   const artifact = await artifacts.readArtifact(contractName);
   return new Contract(json[cacheName], artifact.abi, deployer);
@@ -79,7 +77,7 @@ export async function loadCacheContract(deployer: Signer, contractName: string, 
 
 export async function cacheDeployContract(deployer: Signer, contractName: string, args: any[],
   callback: (args: any[]) => Promise<Contract>): Promise<Contract> {
-  const cachePath = `./.deploy-cache.${network.name}.json`;
+  const cachePath = deployCacheName();
 
   const json = load(cachePath);
   const cacheName = [contractName, ...args].join('|');

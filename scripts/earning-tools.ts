@@ -1,13 +1,19 @@
 import { Earning } from '../typechain-types/contracts/Earning';
 import { EarningSwapRouter } from '../typechain-types/contracts/EarningSwapRouter';
-import { expandTo18Decimals, loadCacheContract, loadSystemConfig, tryExecute } from './utils/deploy.util';
+import { network } from 'hardhat';
+import IChain from './networks/IChain';
+import { loadCacheContract, tryExecute } from './utils/deploy.util';
 
 async function main() {
     await tryExecute(async (deployer) => {
+        const Chain = require(`./networks/${network.name}`).default;
+        const chain: IChain = new Chain();
+        
         console.log(`Handling contracts with account: \x1b[33m${await deployer.getAddress()}\x1b[0m`);
 
-        const systemConfig = await loadSystemConfig();
-
+        const config = await chain.makeConfig();
+        const systemConfig = config.systemConfig;
+        
         const contractConfigs ={
             'Earning': {
                 contractName: 'Earning',
