@@ -15,6 +15,34 @@ export default abstract class IChain {
 
     abstract deployEarningPools(config: IConfig): Promise<{[key: string]: Contract}>;
 
+    async deploy() {
+        const config = await this.makeConfig();
+        
+        const earningPools = await this.deployEarningPools(config);
+
+        const combos = await this.makeCombos(config, earningPools);
+
+        const earningSwapRouter = await this.deployEarningSwapRouter(config);
+        const earningSwapRouterAddr = await earningSwapRouter.getAddress();
+
+        const contract = await this.deployEarning(config, earningSwapRouterAddr, combos);
+
+        earningPools['earningSwapRouter'] = earningSwapRouter;
+        await this.setInvokers(earningPools, await contract.getAddress());
+        
+        return contract;
+    }
+
+    async setInvokers(earningPools: {[key: string]: Contract}, contractAddr: string) {
+        for (const key of Object.keys(earningPools)) {
+            try {
+                await earningPools[key].setInvoker(contractAddr);
+            } catch (error) {
+                console.error(`${key} setInvoker failed by ${error}`)
+            }
+        }
+    }
+
     async deployEarning(config: IConfig, earningSwapRouterAddr: string, combos: Combo[]): Promise<Contract> {
         const systemConfig = config.systemConfig;
         const args = [
