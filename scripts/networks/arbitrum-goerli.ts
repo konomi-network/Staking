@@ -71,7 +71,7 @@ export default class Chain extends IChain {
             earningContract: await earningPoolContracts.LINK.getAddress(),
         };
 
-        const tokenDai: TokenInfo = {
+        const tokenUsdc: TokenInfo = {
             name: 'USDC',
             token: config.usdcTokenAddress,
             earningContract: await earningPoolContracts.USDC.getAddress(),
@@ -84,7 +84,7 @@ export default class Chain extends IChain {
             },
             {
                 creditRating: 1,
-                entries: [makeCombo(40, makeEarningToken(2, tokenDai)), makeCombo(60, makeEarningToken(3, tokenLink))]
+                entries: [makeCombo(40, makeEarningToken(2, tokenUsdc)), makeCombo(60, makeEarningToken(3, tokenLink))]
             }
         ];
 
