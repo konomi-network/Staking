@@ -111,11 +111,11 @@ abstract contract EarningPool is IEarningPool, ReentrancyGuard, AccessControlUpg
         emit Redeemed(onBehalfOf, address(earningToken), amount);
     }
 
-    function apy() external view returns (uint256 supplyRatePerYear) {
+    function apy() external view onlyRole(POOL_ROLE) returns (uint256 supplyRatePerYear) {
         supplyRatePerYear = _fixedApy();
     }
 
-    function reward(address onBehalfOf, uint256 depositBlock) external override view returns (uint256) {
+    function reward(address onBehalfOf, uint256 depositBlock) external override view onlyRole(POOL_ROLE) returns (uint256) {
         return _calculateReward(userTotalEarn[onBehalfOf], currentTime(), depositBlock);
     }
 

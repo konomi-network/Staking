@@ -52,9 +52,9 @@ describe("CompoundV3EarningPool", function () {
     const allowanceToken = async(runner: Signer, token: Contract, contractAddr: string, checkBalanceOf: boolean = true) => {
         const runnerAddr = await runner.getAddress();
 
-        const erc20 = MockERC20__factory.connect(await token.getAddress());
+        const erc20 = MockERC20__factory.connect(await token.getAddress(), runner);
 
-        await expect(erc20.connect(runner).increaseAllowance(contractAddr, TEST_AMOUNT)).to.emit(token, 'Approval');
+        await expect(erc20.increaseAllowance(contractAddr, TEST_AMOUNT)).to.emit(token, 'Approval');
         // expect(await token.allowance(runnerAddr, contractAddr)).to.eq(TEST_AMOUNT);
 
         if (checkBalanceOf) {
