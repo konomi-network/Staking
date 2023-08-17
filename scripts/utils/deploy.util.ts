@@ -38,20 +38,20 @@ export async function tryExecute(callback: (deployer: Signer) => Promise<void>) 
     await callback(deployer);
 
     const afterBalance = await balanceOf(await deployer.getAddress());
-    console.log('After balance:', afterBalance, Number(afterBalance) - Number(beforeBalance));
+    console.log('After balance:', afterBalance, beforeBalance - afterBalance);
     console.timeEnd(startTime);
     process.exit(0);
   } catch (error) {
     console.error(`tryExecute failed by: ${error}`);
     const afterBalance = await balanceOf(await deployer.getAddress());
-    console.log('After balance:', afterBalance, Number(beforeBalance) - Number(afterBalance));
+    console.log('After balance:', afterBalance, beforeBalance - afterBalance);
     process.exit(1);
   }
 }
 
 export async function balanceOf(who: string) {
   const web3 = new Web3(network.provider);
-  return web3.utils.fromWei(await web3.eth.getBalance(who), 'ether');
+  return Number(web3.utils.fromWei(await web3.eth.getBalance(who), 'ether'));
 }
 
 export function loadCacheContractAddress(contractName: string, args: any[]): string {
