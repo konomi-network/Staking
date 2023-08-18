@@ -74,7 +74,7 @@ contract EarningSwapRouter is IEarningSwapRouter, ReentrancyGuard, AccessControl
 
         IERC20(_tokenIn).safeTransferFrom(_onBehalfOf, _recipient, _amountIn);
 
-        IERC20(_tokenIn).safeIncreaseAllowance(permit2, _amountIn);
+        IERC20(_tokenIn).safeApprove(permit2, _amountIn);
 
         IAllowanceTransfer(permit2).approve(_tokenIn, swapRouter, _amountIn.toUint160(), uint48(_expiration()));
         
