@@ -10,7 +10,8 @@ import {
 } from 'hardhat';
 import {
     deployContractWithDeployer,
-    deployContractWithProxyDeployer
+    deployContractWithProxyDeployer,
+    expandTo18Decimals
 } from './utils';
 import {
     MockERC20__factory,
@@ -21,10 +22,6 @@ import { EarningSwapRouter__factory } from '../typechain-types/factories/contrac
 // platform fee, i.e. 1000 represents 1%
 const PLATFORM_FEE = 1000;
 const TEST_AMOUNT = expandTo18Decimals(10000);
-
-function expandTo18Decimals(n: number): bigint {
-    return BigInt(n) * (10n ** 18n);
-}
 
 describe("EarningSwapRouter", function () {
     let token: Contract;

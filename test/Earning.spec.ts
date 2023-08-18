@@ -10,7 +10,8 @@ import {
 } from 'hardhat';
 import {
     deployContractWithDeployer,
-    deployContractWithProxyDeployer
+    deployContractWithProxyDeployer,
+    expandTo18Decimals
 } from './utils';
 import {
     MockAavePool__factory,
@@ -39,10 +40,6 @@ const MAX_PER_USER_DEPOSIT = expandTo18Decimals(100000);
 const TEST_AMOUNT = expandTo18Decimals(10000);
 const MAX_INTEREST_RATE = 1000;
 const MAX_EARNING_PER_USER = 500;
-
-function expandTo18Decimals(n: number): bigint {
-    return BigInt(n) * (10n ** 18n);
-}
 
 const advanceBlocks = async (blockNumber: number) => {
     while (blockNumber > 0) {

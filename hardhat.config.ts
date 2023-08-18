@@ -40,7 +40,7 @@ const solidityVersions: {[key: string]:string} = {
   'arbitrum-goerli': '0.8.19',
 }
 
-const solidityVersion = solidityVersions[NETWORK] ? solidityVersions[NETWORK] : '0.8.21';
+const solidityVersion = solidityVersions[NETWORK] ? solidityVersions[NETWORK] : '0.8.20';
 console.log(`Chain: ${NETWORK}[${chainIds[NETWORK]}] solidity version: ${solidityVersion}`)
 
 const config: HardhatUserConfig = {

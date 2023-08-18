@@ -10,7 +10,8 @@ import {
 } from 'hardhat';
 import {
     deployContractWithDeployer,
-    deployContractWithProxyDeployer
+    deployContractWithProxyDeployer,
+    expandTo18Decimals
 } from './utils';
 import {
     MockERC20__factory,
@@ -20,19 +21,9 @@ import {
 } from '../typechain-types/factories/contracts/earning';
 import { CompoundV3EarningPool } from '../typechain-types/contracts/earning/CompoundV3EarningPool';
 
-// platform fee, i.e. 1000 represents 1%
-const PLATFORM_FEE = 1000;
 const MAX_PER_USER_DEPOSIT = expandTo18Decimals(100000);
 const TEST_AMOUNT = expandTo18Decimals(10000);
 const MAX_INTEREST_RATE = 1000;
-
-function expandTo18Decimals(n: number): bigint {
-    return BigInt(n) * (10n ** 18n);
-}
-
-const calcFee = (amount: number) => {
-    return amount * PLATFORM_FEE / 10000;
-}
 
 describe("CompoundV3EarningPool", function () {
     let tokenUsdc: Contract;

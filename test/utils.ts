@@ -1,12 +1,14 @@
 import {
     Contract,
-    Signer,
-    ContractFactory
-} from 'ethers';
+    Signer} from 'ethers';
 import {
     ethers,
     upgrades
 } from 'hardhat';
+
+export function expandTo18Decimals(n: number): bigint {
+    return BigInt(n) * (10n ** 18n);
+}
 
 export async function deployContractWithDeployer(
     deployer: Signer,
@@ -21,11 +23,6 @@ export async function deployContractWithDeployer(
     const contractFactory = await ethers.getContractFactory(contractName, deployer);
     const contract = await contractFactory.deploy(...args);
     const contractAddr = await contract.getAddress();
-    const data = {
-        address: contractAddr,
-        abi: JSON.parse(contract.interface.formatJson()),
-    };
-    // fs.writeFileSync(`${__dirname}/generated/${contractName}.json`, JSON.stringify(data));
 
     if (!isSilent) {
         console.log(`>> contract ${contractName} deployed with address ${contractAddr}`);
