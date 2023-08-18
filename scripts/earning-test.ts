@@ -42,7 +42,7 @@ async function main() {
 
         // await earning.setMinDepositAmount(1000);
 
-        console.log(`\n>>> Earning deposit: ${await earning.deposit(1, expandTo6Decimals(1000))}`);
+        console.log(`\n>>> Earning deposit: ${await earning.deposit(1, expandTo6Decimals(2000))}`);
 
         userDetail = await earning.listUserEarnDetail();
         console.log(`\n>>> Earning ${userDetail.length} userEarnDetail after deposit`);

@@ -37,7 +37,7 @@ const chainIds: {[key: string]:number} = {
 
 const solidityVersions: {[key: string]:string} = {
   'arbitrum': '0.8.19',
-  'arbitrum-goerli': '0.8.9',
+  'arbitrum-goerli': '0.8.19',
 }
 
 const solidityVersion = solidityVersions[NETWORK] ? solidityVersions[NETWORK] : '0.8.21';
