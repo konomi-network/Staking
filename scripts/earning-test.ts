@@ -1,7 +1,7 @@
 import { Earning } from '../typechain-types/contracts/Earning';
 import { network } from 'hardhat';
 import IChain from './networks/IChain';
-import { expandTo18Decimals, loadCacheContract, tryExecute } from './utils/deploy.util';
+import { expandTo6Decimals, loadCacheContract, tryExecute } from './utils/deploy.util';
 import { EarningSwapRouter } from '../typechain-types/contracts/EarningSwapRouter';
 
 async function main() {
@@ -42,7 +42,7 @@ async function main() {
 
         // await earning.setMinDepositAmount(1000);
 
-        console.log(`\n>>> Earning deposit: ${await earning.deposit(1, 1000)}`);
+        console.log(`\n>>> Earning deposit: ${await earning.deposit(1, expandTo6Decimals(1000))}`);
 
         userDetail = await earning.listUserEarnDetail();
         console.log(`\n>>> Earning ${userDetail.length} userEarnDetail after deposit`);

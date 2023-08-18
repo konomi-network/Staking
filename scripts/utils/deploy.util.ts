@@ -22,6 +22,10 @@ export function expandTo18Decimals(n: number): bigint {
   return BigInt(n) * (10n ** 18n);
 }
 
+export function expandTo6Decimals(n: number): bigint {
+  return BigInt(n) * (10n ** 6n);
+}
+
 export async function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
