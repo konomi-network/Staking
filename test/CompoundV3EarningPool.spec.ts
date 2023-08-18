@@ -123,6 +123,16 @@ describe("CompoundV3EarningPool", function () {
             expect(await tokenUsdc.balanceOf(senderAddr)).to.eq(TEST_AMOUNT - 900n);
         });
 
+        it('redeem failed by RedeemAmountTooLarge', async () => {
+            await allowanceTokens();
+            
+            const senderAddr = await sender.getAddress();
+            const contract = compoundV3EarningPool.connect(sender)
+
+            await expect(contract.deposit(senderAddr, 100n)).to.emit(compoundV3EarningPool, 'Deposited');
+            await expect(contract.redeem(senderAddr, 1000n)).to.revertedWithCustomError(compoundV3EarningPool, 'RedeemAmountTooLarge');
+        });
+
         it('redeem failed by DepositAmountMustBeGreaterThanZero', async () => {
             const senderAddr = await sender.getAddress();
             const contract = compoundV3EarningPool.connect(sender)

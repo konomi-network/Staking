@@ -21,6 +21,8 @@ abstract contract EarningPool is IEarningPool, ReentrancyGuard, AccessControlUpg
 
     // The mapping that tracks the total amount earned of an address
     mapping(address => uint256) public userTotalEarn;
+    // The mapping that tracks the total amount reward of an address when call redeem method
+    mapping(address => uint256) public userReward;
 
     /// @dev Ignoring leap years
     uint256 internal constant SECONDS_PER_YEAR = 365 days;
@@ -94,10 +96,11 @@ abstract contract EarningPool is IEarningPool, ReentrancyGuard, AccessControlUpg
             revert RedeemAmountMustBeGreaterThanZero();
         }
 
-        // Only processing memory, as third-party contracts will not be updated to memory
         uint256 userEarn = userTotalEarn[onBehalfOf];
+        if (amount > (userEarn + userReward[onBehalfOf])) {
+            revert RedeemAmountTooLarge();
+        }
 
-        // TODO: need check rewardAmound??
         if (userEarn <= amount) {
             delete userTotalEarn[onBehalfOf];
             totalSupply -= userEarn;
@@ -115,8 +118,9 @@ abstract contract EarningPool is IEarningPool, ReentrancyGuard, AccessControlUpg
         supplyRatePerYear = _fixedApy();
     }
 
-    function reward(address onBehalfOf, uint256 depositBlock) external override view onlyRole(POOL_ROLE) returns (uint256) {
-        return _calculateReward(userTotalEarn[onBehalfOf], currentTime(), depositBlock);
+    function reward(address onBehalfOf, uint256 depositBlock) external override onlyRole(POOL_ROLE) returns (uint256 rewardAmount) {
+        rewardAmount = _calculateReward(userTotalEarn[onBehalfOf], currentTime(), depositBlock);
+        userReward[onBehalfOf] = rewardAmount;
     }
 
     function _calculateReward(uint256 amount, uint256 currentTimestamp, uint256 depositBlock) internal view returns (uint256 rewardAmount) {
