@@ -2,7 +2,7 @@ import { ethers } from 'hardhat';
 import { Contract } from 'ethers';
 import { Combo, TokenInfo, makeCombo, makeEarningToken } from '../utils/combo.util';
 import { SystemConfig } from '../utils/config.util';
-import { deployContract, expandTo18Decimals } from '../utils/deploy.util';
+import { decimalsOf, expandToNDecimals } from '../utils/deploy.util';
 import IChain, { IConfig } from './IChain';
 
 export interface Config extends IConfig {
@@ -17,6 +17,9 @@ export interface Config extends IConfig {
 export default class Chain extends IChain {
     async makeConfig(): Promise<Config> {
         const [deployer] = await ethers.getSigners();
+
+        const earningTokenAddress = '0x8F30ec9Fb348513494cCC1710528E744Efa71003'; // USDT of compound
+        const decimals = await decimalsOf(earningTokenAddress);
         
         const systemConfig: SystemConfig = {
             // https://docs.aave.com/developers/deployed-contracts/v3-testnet-addresses
@@ -30,11 +33,11 @@ export default class Chain extends IChain {
             uniswapRouterAddress: '0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD',
             uniswapPermit2Address: '0x000000000022d473030f116ddee9f6b43ac78ba3',
             // https://goerli.arbiscan.io/address/0x8f30ec9fb348513494ccc1710528e744efa71003
-            earningTokenAddress: '0x8F30ec9Fb348513494cCC1710528E744Efa71003', // USDT of compound
+            earningTokenAddress: earningTokenAddress, 
 
             platformFee: 1000, // 1%
-            maxPerUserDeposit: String(expandTo18Decimals(10000)),
-            minDepositAmount: String(expandTo18Decimals(1000)),
+            maxPerUserDeposit: String(expandToNDecimals(10000, decimals)),
+            minDepositAmount: String(expandToNDecimals(100, decimals)),
             maxInterestRate: 1000, // 10%
         }
 

@@ -5,7 +5,8 @@ import { SystemConfig } from '../utils/config.util';
 import {
     deployContract,
     deployContractWithProxy,
-    expandTo18Decimals
+    decimalsOf,
+    expandToNDecimals,
 } from '../utils/deploy.util';
 import IChain, { IConfig } from './IChain';
 
@@ -38,6 +39,9 @@ export default class Chain extends IChain {
         const swapRouterContract = await deployContract(deployer, 'MockSwapRouter', []);
         const permit2Contract = await deployContract(deployer, 'MockPermit2', []);
 
+        const earningTokenAddress = await earningToken.getAddress();
+        const decimals = await decimalsOf(earningTokenAddress);
+
         const systemConfig: SystemConfig = {
             aavePoolAddress: await aavePoolContract.getAddress(),
             aTokenAddress: await aToken.getAddress(),
@@ -45,10 +49,10 @@ export default class Chain extends IChain {
             cometAddress: await comet.getAddress(),
             uniswapRouterAddress: await swapRouterContract.getAddress(),
             uniswapPermit2Address: await permit2Contract.getAddress(),
-            earningTokenAddress: await earningToken.getAddress(),
+            earningTokenAddress: earningTokenAddress,
             platformFee: 1000, // 1%
-            maxPerUserDeposit: String(expandTo18Decimals(10000)),
-            minDepositAmount: String(expandTo18Decimals(1000)),
+            maxPerUserDeposit: String(expandToNDecimals(10000, decimals)),
+            minDepositAmount: String(expandToNDecimals(1000, decimals)),
             maxInterestRate: 1000, // 10%
         }
 

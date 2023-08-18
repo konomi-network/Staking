@@ -35,10 +35,13 @@ export default abstract class IChain {
 
     async setInvokers(earningPools: {[key: string]: Contract}, contractAddr: string) {
         for (const key of Object.keys(earningPools)) {
+            const contractAddr = await earningPools[key].getAddress();
+            const tips = `\x1b[33m${key}\x1b[0m contract: \x1b[33m${contractAddr}\x1b[0m setInvoker address: \x1b[33m${contractAddr}\x1b[0m`;
             try {
+                console.log(tips);
                 await earningPools[key].setInvoker(contractAddr);
             } catch (error) {
-                console.error(`${key} setInvoker failed by ${error}`)
+                console.error(`${tips} failed by ${error}`)
             }
         }
     }

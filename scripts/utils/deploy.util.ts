@@ -2,6 +2,7 @@ import fs from 'fs';
 import { Contract, Signer } from 'ethers';
 import { ethers, upgrades, artifacts, network } from 'hardhat';
 import Web3 from 'web3';
+import { MockERC20 } from '../../typechain-types/contracts/test/MockERC20';
 
 function load(path: string): any {
   if (!fs.existsSync(path)) {
@@ -18,12 +19,8 @@ function deployCacheName(): string {
   return `./.deploy-cache.${network.name}.json`;
 }
 
-export function expandTo18Decimals(n: number): bigint {
-  return BigInt(n) * (10n ** 18n);
-}
-
-export function expandTo6Decimals(n: number): bigint {
-  return BigInt(n) * (10n ** 6n);
+export function expandToNDecimals(n: number, decimal: bigint): bigint {
+  return BigInt(n) * 10n ** decimal;
 }
 
 export async function delay(ms: number): Promise<void> {
@@ -58,6 +55,12 @@ export async function balanceOf(who: string) {
   return Number(web3.utils.fromWei(await web3.eth.getBalance(who), 'ether'));
 }
 
+export async function decimalsOf(who: string): Promise<bigint> {
+  const [deployer] = await ethers.getSigners();
+  const token = await loadContract(who, 'MockERC20', deployer) as unknown as MockERC20;
+  return await token.decimals();
+}
+
 export function loadCacheContractAddress(contractName: string, args: any[]): string {
   const cachePath = deployCacheName();
 
@@ -68,6 +71,11 @@ export function loadCacheContractAddress(contractName: string, args: any[]): str
   return json[cacheName];
 }
 
+export async function loadContract(contractAddr: string, contractName: string, deployer: Signer): Promise<Contract> {
+  const artifact = await artifacts.readArtifact(contractName);
+  return new Contract(contractAddr, artifact.abi, deployer);
+}
+
 export async function loadCacheContract(deployer: Signer, contractName: string, args: any[]): Promise<Contract> {
   const cachePath = deployCacheName();
 
@@ -75,8 +83,7 @@ export async function loadCacheContract(deployer: Signer, contractName: string, 
   const cacheName = [contractName, ...args].join('|');
   console.log(`loadCacheContract cacheName: ${cacheName} with address: ${json[cacheName]}`)
 
-  const artifact = await artifacts.readArtifact(contractName);
-  return new Contract(json[cacheName], artifact.abi, deployer);
+  return await loadContract(json[cacheName], contractName, deployer);
 }
 
 export async function cacheDeployContract(deployer: Signer, contractName: string, args: any[],
@@ -85,12 +92,10 @@ export async function cacheDeployContract(deployer: Signer, contractName: string
 
   const json = load(cachePath);
   const cacheName = [contractName, ...args].join('|');
-  console.log(`cacheDeployContract cacheName: ${cacheName} with address: ${json[cacheName]}`)
 
   if (json[cacheName] !== undefined) {
     console.log(`Contract \x1b[33m${contractName}\x1b[0m already deployed to \x1b[33m${json[cacheName]}\x1b[0m`);
-    const artifact = await artifacts.readArtifact(contractName);
-    return new Contract(json[cacheName], artifact.abi, deployer);
+    return await loadContract(json[cacheName], contractName, deployer);
   }
 
   const contract = await callback(args);

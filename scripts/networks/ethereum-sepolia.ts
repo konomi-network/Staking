@@ -2,7 +2,7 @@ import { ethers } from 'hardhat';
 import { Contract } from 'ethers';
 import { Combo, TokenInfo, makeCombo, makeEarningToken } from '../utils/combo.util';
 import { SystemConfig } from '../utils/config.util';
-import { deployContract, expandTo18Decimals } from '../utils/deploy.util';
+import { deployContract, decimalsOf, expandToNDecimals } from '../utils/deploy.util';
 import IChain, { IConfig } from './IChain';
 
 export interface Config extends IConfig {
@@ -19,6 +19,8 @@ export default class Chain extends IChain {
         const [deployer] = await ethers.getSigners();
         
         const earningToken = await deployContract(deployer, 'MockERC20', ['kETH', 'kETH']);
+        const earningTokenAddress = await earningToken.getAddress();
+        const decimals = await decimalsOf(earningTokenAddress);
         
         const systemConfig: SystemConfig = {
             // https://docs.aave.com/developers/deployed-contracts/v3-testnet-addresses
@@ -32,11 +34,11 @@ export default class Chain extends IChain {
             uniswapRouterAddress: '0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD',
             uniswapPermit2Address: '0x000000000022d473030f116ddee9f6b43ac78ba3',
             // https://sepolia.etherscan.io/address/0xe7ec1b0015eb2adeedb1b7f9f1ce82f9dad6df08#readProxyContract
-            earningTokenAddress: await earningToken.getAddress(),
+            earningTokenAddress: earningTokenAddress,
 
             platformFee: 1000, // 1%
-            maxPerUserDeposit: String(expandTo18Decimals(10000)),
-            minDepositAmount: String(expandTo18Decimals(1000)),
+            maxPerUserDeposit: String(expandToNDecimals(10000, decimals)),
+            minDepositAmount: String(expandToNDecimals(1000, decimals)),
             maxInterestRate: 1000, // 10%
         }
 
